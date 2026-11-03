@@ -1,20 +1,51 @@
 # Near to me
 
-Near to me is a local discovery guide for visitors, residents and the businesses that welcome them. It includes a nearby map and directory, saved/visited places, community reviews, a weekly events guide, a sign-up/sign-in experience, a business subscription preview, an embeddable guide, QR-code generation and an area admin.
+Near to me shows people what's good and closest to them: shops, food, gyms, high-protein and low-calorie eats, things to do, parking and the week's events. It's built to grow area by area, starting with Nuneaton.
 
 ## Run locally
 
 ```bash
 npm install
+cp .env.example .env.local   # then fill in ADMIN_USERS and ADMIN_SESSION_SECRET
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Run `npm run build` for a production build and `npm run typecheck` to check TypeScript.
+Open [http://localhost:3000](http://localhost:3000). The admin portal is at [/admin](http://localhost:3000/admin).
 
-## Included LinQR directory
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Development server |
+| `npm test` | Unit and API tests (Vitest) |
+| `npm run typecheck` | TypeScript check |
+| `npm run build` / `npm start` | Production build / server |
 
-The supplied LinQR guest-directory snapshot is imported into `data/places.json` (130 places across parking, travel, cash access, A&E, laundry, food, pubs, attractions and shopping). `data/events.json` holds seven weekly events plus two dated one-offs (the 31 Oct Halloween party and 30 Oct bingo); dated events only appear in the week they happen. Newly opened places (Alanya Turkish Restaurant and The Jail House Pub & Bistro) get a three-week "Just opened" spotlight: a section at the top of Explore and first position in the directory. Businesses that sign up with a recent opening date get the same spotlight automatically.
+## How it works
 
-## Preview scope
+**Personalised to where you are.** Visitors tap *Use my location* (browser geolocation) or enter a postcode. Every place is sorted by straight-line distance from that point, with a walking-time estimate. The location is kept only in that visitor's browser. Postcode lookups go to [postcodes.io](https://postcodes.io). Without a location, the guide starts from the town centre.
 
-This is a browser-only product prototype: business settings, added places, saved lists, reviews and preview account profiles are stored in that browser's local storage. Passwords are never stored. The `/account` forms demonstrate the sign-up and sign-in experience but do not authenticate users; live authentication, verification, password recovery and account security need a production authentication service. The QR code and `/widget` route are functional, and the guide can be embedded with the iframe snippet in Area admin. The supplied source includes distances but no coordinates, so map pins are illustrative, not geocoded. The seed directory describes Nuneaton; changing the area name does not fetch another area's directory. A production multi-tenant launch also needs a hosted database, a geocoding/map provider, and billing integration.
+**Explore page sections:** what do you need (shops, things to do, gyms, high protein / low cal, pubs, parking) → just opened → your favourites nearby → recommended → this week's events → everything nearby (map and list) → visiting? essentials (parking, cash, trains and buses, A&E) → local noticeboard.
+
+**Ranking:** places marked *just opened* come first for three weeks, then *sponsored* places (always labelled), then the nearest.
+
+**Admin portal (`/admin`).** Admins sign in and manage everything without code changes:
+
+- **Places:** add, edit or remove places. Mark them as just opened, sponsored, recommended or high protein / low cal. Locations can be filled in from the postcode.
+- **Events:** weekly events, or one-off events with a date.
+- **Noticeboard:** updates, offers and recommendations shown at the bottom of Explore, with optional pinning and end dates.
+- **Reviews:** remove abusive or fake reviews. Reviews go live as soon as they're posted.
+- **Business enquiries:** sponsorship, listing and review requests from the *For businesses* page and business sign-ups. Admins can change each enquiry's status, and *Create listing* turns a listing request into a place.
+
+Admin accounts come from `ADMIN_USERS` (see `.env.example`). Sessions are signed, HTTP-only, same-site cookies that last 12 hours. Admin changes and public form posts are rejected unless they come from the site itself.
+
+## Data and areas
+
+- `data/nuneaton-places.json` and `data/nuneaton-events.json` seed the Nuneaton guide. Places carry latitude and longitude from their postcodes. Eight that had no usable postcode were placed by street and are flagged `approximateLocation`.
+- `lib/areas.ts` registers each area. To add an area, add `data/<area>-places.json` and `data/<area>-events.json` and register them there.
+- The first time an area is used, its seed data is copied into `CONTENT_DIR` (default `.data/`, which is git-ignored). After that, admin edits, reviews and enquiries are saved there.
+
+## Before going live
+
+- **Storage:** content is saved as one JSON file per area on the server's disk. This works on a single long-running Node server, such as a VPS, Render or Railway with a persistent disk. It **won't persist on serverless hosts** like Vercel. For those, or to run more than one instance, replace `lib/content-store.ts` with a database.
+- **Rate limits:** public forms are rate-limited in memory, per server instance.
+- **Visitor accounts:** `/account` sign-up and sign-in are still a browser-only preview. Business sign-ups do reach admins as enquiries. Real visitor accounts need an authentication service.
+- **Map:** the nearby map is a distance view centred on the visitor (rings at half and full radius), not a street map.
