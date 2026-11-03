@@ -729,16 +729,19 @@
   },
   {
     "id": "alanya-restaurant",
-    "name": "Alanya Restaurant",
+    "name": "Alanya Turkish Restaurant",
     "category": "Food",
     "distance": 0.2,
     "walkMinutes": 4,
-    "details": "",
-    "address": "Turkish Restaurant Open Everyday 12:00pm - 11:00pmCoventry St, Nuneaton CV11 5SZ",
+    "details": "Turkish restaurant. Open every day 12pm–11pm.",
+    "address": "Coventry Street, Nuneaton CV11 5SZ",
     "x": 38.4,
     "y": 19.7,
     "rating": null,
-    "ratingCount": 0
+    "ratingCount": 0,
+    "launchSpotlight": true,
+    "spotlightEndsAt": "2026-11-24T23:59:59.000Z",
+    "spotlightNote": "New local opening — opening details supplied by the area guide."
   },
   {
     "id": "spudz-mash-n-dash",
@@ -1688,5 +1691,21 @@
     "y": 46.6,
     "rating": null,
     "ratingCount": 0
+  },
+  {
+    "id": "the-jailhouse",
+    "name": "The Jailhouse",
+    "category": "Pubs & bars",
+    "distance": 0.2,
+    "walkMinutes": 4,
+    "details": "New local pub opening. Opening hours and address details to be confirmed by the venue.",
+    "address": "Nuneaton town centre",
+    "x": 54.2,
+    "y": 47.8,
+    "rating": null,
+    "ratingCount": 0,
+    "launchSpotlight": true,
+    "spotlightEndsAt": "2026-11-24T23:59:59.000Z",
+    "spotlightNote": "New local opening — venue details awaiting confirmation."
   }
 ]

@@ -7,6 +7,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   Bookmark,
+  CalendarDays,
   Check,
   ChevronDown,
   ChevronRight,
@@ -41,21 +42,9 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import originalPlaces from "@/data/places.json";
-
-type Place = {
-  id: string;
-  name: string;
-  category: string;
-  distance: number;
-  walkMinutes: number;
-  details: string;
-  address: string;
-  x: number;
-  y: number;
-  rating?: number | null;
-  ratingCount?: number;
-};
+import weeklyEvents from "@/data/events.json";
+import { basePlaces, isSpotlight, mergeSeededPlaces, type Place } from "@/lib/directory";
+type LocalEvent = (typeof weeklyEvents)[number];
 type Review = {
   id: string;
   placeId: string;
@@ -90,7 +79,7 @@ const categoryColors: Record<string, string> = {
   Laundry: "#7954c5",
   "A&E": "#d43d50",
 };
-const basePlaces = originalPlaces as Place[];
+const events = weeklyEvents as LocalEvent[];
 const navItems: { id: Tab; label: string; icon: typeof Compass }[] = [
   { id: "explore", label: "Explore places", icon: Compass },
   { id: "saved", label: "Your saved list", icon: Bookmark },
@@ -104,6 +93,20 @@ function categoryColor(category: string) {
 function tidy(text: string, maximum = 118) {
   const result = text.replace(/what3words\s+\/\/\/\S+/gi, "").replace(/\s+/g, " ").trim();
   return result.length > maximum ? `${result.slice(0, maximum).trim()}…` : result;
+}
+
+function nextEventDate(day: string, time: string, now: Date) {
+  const dayNumbers: Record<string, number> = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+  const eventDate = new Date(now);
+  eventDate.setHours(0, 0, 0, 0);
+  eventDate.setDate(now.getDate() + ((dayNumbers[day] - now.getDay() + 7) % 7));
+  const match = time.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
+  if (match) {
+    let hours = Number(match[1]) % 12;
+    if (match[3].toLowerCase() === "pm") hours += 12;
+    eventDate.setHours(hours, Number(match[2] ?? 0));
+  }
+  return eventDate;
 }
 
 function BrandMark({ small = false }: { small?: boolean }) {
@@ -146,6 +149,8 @@ export default function NearToMeApp() {
   const [newCategory, setNewCategory] = useState("Food");
   const [newAddress, setNewAddress] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [showAllEvents, setShowAllEvents] = useState(false);
+  const [accountName, setAccountName] = useState("");
 
   useEffect(() => {
     try {
@@ -153,7 +158,7 @@ export default function NearToMeApp() {
         const value = window.localStorage.getItem(`nearfolk:${key}`);
         return value ? (JSON.parse(value) as T) : fallback;
       };
-      setPlaces(read("places", basePlaces));
+      setPlaces(mergeSeededPlaces(read("places", basePlaces)));
       setReviews(read("reviews", []));
       setSaved(read("saved", []));
       setVisited(read("visited", []));
@@ -164,6 +169,8 @@ export default function NearToMeApp() {
       const savedCompanyUrl = read<string>("companyUrl", "nuneaton.near-to-me.example");
       setCompanyUrl(savedCompanyUrl === "nuneaton.nearfolk.co.uk" ? "nuneaton.near-to-me.example" : savedCompanyUrl);
       setSubscription(read("subscription", "Free"));
+      const profile = window.localStorage.getItem("near-to-me:profile");
+      if (profile) setAccountName((JSON.parse(profile) as { name?: string }).name ?? "");
     } catch (error) {
       console.error("Could not load Near to me settings from this browser.", error);
     }
@@ -187,8 +194,19 @@ export default function NearToMeApp() {
       .filter((place) => selectedCategory === "Everything nearby" || place.category === selectedCategory)
       .filter((place) => `${place.name} ${place.category} ${place.details} ${place.address}`.toLowerCase().includes(query.toLowerCase()))
       .filter((place) => place.distance <= radius)
-      .sort((a, b) => a.distance - b.distance);
+      .sort((a, b) => Number(isSpotlight(b)) - Number(isSpotlight(a)) || a.distance - b.distance);
   }, [places, query, radius, selectedCategory]);
+
+  const thisWeekEvents = useMemo(() => {
+    const now = new Date();
+    const nextMonday = new Date(now);
+    nextMonday.setHours(0, 0, 0, 0);
+    nextMonday.setDate(now.getDate() + ((8 - now.getDay()) % 7 || 7));
+    return events
+      .map((event) => ({ ...event, eventDate: nextEventDate(event.day, event.time, now) }))
+      .filter((event) => event.eventDate >= now && event.eventDate < nextMonday)
+      .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
+  }, []);
 
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/widget?company=${encodeURIComponent(companyUrl)}` : "https://near-to-me.example/widget";
   const widgetSnippet = `<iframe src="${shareUrl}" title="${company} local guide" width="100%" height="760" loading="lazy" style="border:0;border-radius:20px"></iframe>`;
@@ -230,8 +248,12 @@ export default function NearToMeApp() {
   function addPlace(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!newName.trim() || !newAddress.trim()) return;
+    const formData = new FormData(event.currentTarget);
+    const launchSpotlight = formData.get("launchSpotlight") === "on";
     const seed = newName.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
     const slug = `${newName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Date.now().toString().slice(-5)}`;
+    const spotlightEndsAt = new Date();
+    spotlightEndsAt.setDate(spotlightEndsAt.getDate() + 21);
     setPlaces((current) => [...current, {
       id: slug,
       name: newName.trim(),
@@ -242,6 +264,9 @@ export default function NearToMeApp() {
       address: newAddress.trim(),
       x: 20 + seed % 65,
       y: 18 + (seed * 3) % 66,
+      launchSpotlight,
+      spotlightEndsAt: launchSpotlight ? spotlightEndsAt.toISOString() : undefined,
+      spotlightNote: launchSpotlight ? "New local opening — featured for its first three weeks." : undefined,
     }]);
     setNewName("");
     setNewAddress("");
@@ -277,13 +302,13 @@ export default function NearToMeApp() {
           <button className={tab === "admin" ? "nav-link selected" : "nav-link"} onClick={() => { setTab("admin"); setMenuOpen(false); }}><Settings2 size={18} /><span>Area admin</span></button>
         </nav>
         <div className="sidebar-bottom">
-          <div className="neighbour-card">
-            <span className="neighbour-card-icon"><Sparkles size={16} /></span>
-            <p><b>Know a lovely local?</b><br />Help your neighbourhood shine.</p>
-            <button onClick={() => { setNewName(""); setTab("admin"); }} aria-label="Suggest a local place"><ArrowRight size={16} /></button>
-          </div>
+          <button className="neighbour-card" onClick={() => { setTab("business"); setMenuOpen(false); }}>
+            <span className="neighbour-card-icon"><Store size={16} /></span>
+            <p><b>Are you a business?</b><br />Get discovered around here.</p>
+            <span className="neighbour-card-arrow"><ArrowRight size={16} /></span>
+          </button>
           <button className="help-link" onClick={() => setToast("Near to me brings your local guide and community together.")}><CircleHelp size={17} /> Help & feedback</button>
-          <div className="account-row"><div className="avatar">NF</div><div><b>Neighbour account</b><span>Free explorer</span></div><ChevronDown size={15} /></div>
+          <a className="account-row" href="/account"><div className="avatar">{accountName ? accountName.slice(0, 1).toUpperCase() : "NT"}</div><div><b>{accountName || "Sign in / Join free"}</b><span>{accountName ? "Neighbour account" : "Your local life, a little closer"}</span></div><ChevronDown size={15} /></a>
         </div>
       </aside>
       {menuOpen && <button className="mobile-backdrop" onClick={() => setMenuOpen(false)} aria-label="Close menu" />}
@@ -293,7 +318,7 @@ export default function NearToMeApp() {
           <button className="mobile-menu" onClick={() => setMenuOpen(true)} aria-label="Open menu"><Menu size={21} /></button>
           <a className="mobile-wordmark" href="/">near to me<span>.</span></a>
           <div className="breadcrumb"><span>Near to me</span><ChevronRight size={14} /><b>{tab === "explore" ? "Explore" : tab === "saved" ? "Saved places" : tab === "reviews" ? "Local reviews" : tab === "business" ? "Business toolkit" : "Area admin"}</b></div>
-          <div className="topbar-actions"><span className="status-dot" /> Live local guide <button className="share-top" onClick={() => copy(shareUrl, "Guide link copied")}><Share2 size={15} /> Share guide</button></div>
+          <div className="topbar-actions"><a className="topbar-account" href="/account">{accountName ? `Hi, ${accountName.split(" ")[0]}` : "Sign in"}</a><span className="status-dot" /> Live local guide <button className="share-top" onClick={() => copy(shareUrl, "Guide link copied")}><Share2 size={15} /> Share guide</button></div>
         </header>
 
         <div className="content-wrap">
@@ -343,7 +368,19 @@ export default function NearToMeApp() {
                 </button>)}
               </div>
 
-              <div className="explore-heading" id="local-directory"><div><span className="section-index">01 / THE LOCAL EDIT</span><h2>Right around <i>you.</i></h2><p>{filteredPlaces.length} local places <span>·</span> refreshed for {baseLocation.split(",")[0]}</p></div><button className="text-button" onClick={() => setTab("saved")}><Bookmark size={15} /> Your saved list <ArrowRight size={15} /></button></div>
+              <section className="events-section" aria-labelledby="events-title">
+                <div className="events-heading">
+                  <div><span className="section-index">02 / MAKE A PLAN</span><h2 id="events-title">This week, <i>around here.</i></h2><p>Good things going on in {baseLocation.split(",")[0]}.</p></div>
+                  <span className="events-date-stamp"><CalendarDays size={15} /> WEEKLY LOCAL EDIT</span>
+                </div>
+                <div className={showAllEvents ? "events-grid expanded" : "events-grid"}>
+                  {thisWeekEvents.slice(0, showAllEvents ? thisWeekEvents.length : 4).map((event) => <EventCard key={event.id} event={event} date={event.eventDate} />)}
+                  {thisWeekEvents.length === 0 && <p className="events-empty">The next weekly local events will appear here.</p>}
+                </div>
+                {thisWeekEvents.length > 4 && <button className="events-more" onClick={() => setShowAllEvents((current) => !current)}>{showAllEvents ? "Show fewer events" : `See all ${thisWeekEvents.length} events`} <ArrowRight size={14} /></button>}
+              </section>
+
+              <div className="explore-heading" id="local-directory"><div><span className="section-index">03 / THE LOCAL EDIT</span><h2>Right around <i>you.</i></h2><p>{filteredPlaces.length} local places <span>·</span> refreshed for {baseLocation.split(",")[0]}</p></div><button className="text-button" onClick={() => setTab("saved")}><Bookmark size={15} /> Your saved list <ArrowRight size={15} /></button></div>
 
               <div className="discovery-grid">
                 <section className="map-column" aria-label="Nearby places map">
@@ -376,7 +413,7 @@ export default function NearToMeApp() {
                       <article key={place.id} className={currentPlace?.id === place.id ? "place-card selected" : "place-card"}>
                         <button className="place-card-main" onClick={() => setSelectedPlace(place)}>
                           <span className="place-art" style={{ backgroundColor: `${categoryColor(place.category)}12`, color: categoryColor(place.category) }}><span>{place.category === "Food" ? "✳" : place.category === "Shopping" ? "◇" : place.category === "Parking" ? "P" : place.category === "Attractions & days out" ? "✦" : place.category === "Pubs & bars" ? "◒" : "⌖"}</span></span>
-                          <span className="place-copy"><span className="place-category" style={{ color: categoryColor(place.category) }}>{place.category}</span><b>{place.name}</b><span className="place-address">{place.address || place.details}</span><span className="place-meta"><span><Navigation size={12} /> {place.distance < 0.1 ? "<0.1" : place.distance.toFixed(1)} mi</span><span className="meta-separator">·</span><span>{place.walkMinutes} min walk</span>{reviews.some((review) => review.placeId === place.id) && <span className="rating-meta"><Star size={12} fill="currentColor" /> {reviews.filter((review) => review.placeId === place.id).length} review</span>}</span></span>
+                          <span className="place-copy">{isSpotlight(place) && <span className="spotlight-badge"><Sparkles size={10} /> JUST OPENED · LOCAL FIRST LOOK</span>}<span className="place-category" style={{ color: categoryColor(place.category) }}>{place.category}</span><b>{place.name}</b><span className="place-address">{place.address || place.details}</span><span className="place-meta"><span><Navigation size={12} /> {place.distance < 0.1 ? "<0.1" : place.distance.toFixed(1)} mi</span><span className="meta-separator">·</span><span>{place.walkMinutes} min walk</span>{reviews.some((review) => review.placeId === place.id) && <span className="rating-meta"><Star size={12} fill="currentColor" /> {reviews.filter((review) => review.placeId === place.id).length} review</span>}</span></span>
                         </button>
                         <button className={saved.includes(place.id) ? "save-place saved" : "save-place"} onClick={() => toggleSaved(place.id)} aria-label={saved.includes(place.id) ? `Unsave ${place.name}` : `Save ${place.name}`}><Bookmark size={17} fill={saved.includes(place.id) ? "currentColor" : "none"} /></button>
                         {index === 2 && <div className="local-pick"><Sparkles size={12} /> NEIGHBOURHOOD PICK</div>}
@@ -430,7 +467,7 @@ export default function NearToMeApp() {
                   <section className="settings-card"><div className="settings-card-heading"><span className="settings-icon"><LocateFixed size={18} /></span><div><h2>Set your local area</h2><p>Your base point keeps all recommendations close to home.</p></div></div><label className="field-label">BASE LOCATION<input value={baseLocation} onChange={(event) => setBaseLocation(event.target.value)} onBlur={() => setAreas((current) => current.includes(baseLocation) ? current : [...current, baseLocation])} placeholder="e.g. Nuneaton, UK" /></label><div className="form-two"><label className="field-label">DIRECTORY RADIUS<select value={radius} onChange={(event) => setRadius(Number(event.target.value))}><option value={1}>1 mile</option><option value={3}>3 miles</option><option value={5}>5 miles</option><option value={10}>10 miles</option></select></label><label className="field-label">ACTIVE LOCAL AREA<select value={baseLocation} onChange={(event) => setBaseLocation(event.target.value)}>{Array.from(new Set([...areas, baseLocation])).map((area) => <option key={area} value={area}>{area}</option>)}</select></label></div><label className="field-label">ADD ANOTHER LOCAL AREA<div className="domain-input"><input value={newArea} onChange={(event) => setNewArea(event.target.value)} placeholder="e.g. Hinckley, UK" /><button className="area-add-button" type="button" onClick={() => { const area = newArea.trim(); if (!area) return; setAreas((current) => current.includes(area) ? current : [...current, area]); setBaseLocation(area); setNewArea(""); setToast(`${area} area added to your guide.`); }}><Plus size={15} /> Add area</button></div></label><div className="inline-notice"><ShieldCheck size={15} /> Changes save on this device and update your guide instantly. This preview uses the supplied Nuneaton directory; changing areas does not geocode or fetch new listings.</div></section>
                   <section className="settings-card"><div className="settings-card-heading"><span className="settings-icon purple"><Store size={18} /></span><div><h2>Your guest guide</h2><p>Make the directory feel like it belongs to your place.</p></div></div><label className="field-label">GUIDE NAME<input value={company} onChange={(event) => setCompany(event.target.value)} /></label><label className="field-label">CUSTOM GUIDE ADDRESS<div className="domain-input"><span>https://</span><input value={companyUrl} onChange={(event) => setCompanyUrl(event.target.value)} /></div></label><div className="embed-code"><div><span>WEBSITE EMBED</span><button onClick={() => copy(widgetSnippet, "Embed code copied")}><Copy size={14} /> Copy code</button></div><code>{widgetSnippet}</code></div></section>
                   <section className="settings-card"><div className="settings-card-heading"><span className="settings-icon yellow"><Map size={18} /></span><div><h2>Manage local places <span className="count-badge">{places.length}</span></h2><p>Add something wonderful, or remove information that’s no longer current.</p></div></div>
-                    <form className="add-place-form" onSubmit={addPlace}><h3><Plus size={16} /> Add a local place</h3><div className="form-two"><label className="field-label">PLACE NAME<input required value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="e.g. The Sunday market" /></label><label className="field-label">CATEGORY<select value={newCategory} onChange={(event) => setNewCategory(event.target.value)}>{categories.slice(1).map((category) => <option key={category}>{category}</option>)}</select></label></div><label className="field-label">ADDRESS<input required value={newAddress} onChange={(event) => setNewAddress(event.target.value)} placeholder="Street, town, postcode" /></label><label className="field-label">SHORT DESCRIPTION<textarea value={newDescription} onChange={(event) => setNewDescription(event.target.value)} placeholder="What makes this place worth a visit?" rows={2} /></label><button className="primary-button small-button" type="submit"><Plus size={15} /> Add place to guide</button></form>
+                    <form className="add-place-form" onSubmit={addPlace}><h3><Plus size={16} /> Add a local place</h3><div className="form-two"><label className="field-label">PLACE NAME<input required value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="e.g. The Sunday market" /></label><label className="field-label">CATEGORY<select value={newCategory} onChange={(event) => setNewCategory(event.target.value)}>{categories.slice(1).map((category) => <option key={category}>{category}</option>)}</select></label></div><label className="field-label">ADDRESS<input required value={newAddress} onChange={(event) => setNewAddress(event.target.value)} placeholder="Street, town, postcode" /></label><label className="field-label">SHORT DESCRIPTION<textarea value={newDescription} onChange={(event) => setNewDescription(event.target.value)} placeholder="What makes this place worth a visit?" rows={2} /></label><label className="spotlight-check"><input type="checkbox" name="launchSpotlight" /><span><b>Newly opened</b><small>Give this place a three-week first-look boost in the local guide.</small></span><Sparkles size={15} /></label><button className="primary-button small-button" type="submit"><Plus size={15} /> Add place to guide</button></form>
                     <div className="admin-place-list">{places.slice(-4).reverse().map((place) => <div className="admin-place-row" key={place.id}><span className="admin-place-dot" style={{ backgroundColor: categoryColor(place.category) }} /><span><b>{place.name}</b><small>{place.category} · {place.address}</small></span>{!basePlaces.some((item) => item.id === place.id) && <button onClick={() => removePlace(place.id)} aria-label={`Remove ${place.name}`}><Trash2 size={15} /></button>}</div>)}</div></section>
                 </div>
                 <aside className="admin-side-column">
@@ -445,7 +482,7 @@ export default function NearToMeApp() {
         <footer className="main-footer"><span>© 2025 Near to me</span><span>Made for the places that make a place.</span><button onClick={() => setTab("business")}>For local businesses <ArrowUpRight size={13} /></button></footer>
       </main>
 
-      {currentPlace && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedPlace(null); }}><section className="place-detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title"><button className="modal-close" onClick={() => setSelectedPlace(null)} aria-label="Close"><X size={19} /></button><div className="detail-art" style={{ backgroundColor: `${categoryColor(currentPlace.category)}16` }}><span style={{ color: categoryColor(currentPlace.category) }}>{currentPlace.category === "Food" ? "✳" : currentPlace.category === "Shopping" ? "◇" : "✦"}</span><span className="detail-category" style={{ color: categoryColor(currentPlace.category) }}>{currentPlace.category}</span></div><div className="detail-content"><p className="eyebrow">{currentPlace.distance.toFixed(1)} MI FROM YOUR LOCAL GUIDE <span>·</span> {currentPlace.walkMinutes} MIN WALK</p><h2 id="detail-title">{currentPlace.name}</h2><p className="detail-address"><MapPin size={15} />{currentPlace.address || currentPlace.details}</p><p className="detail-description">{tidy(currentPlace.details, 430)}</p><div className="detail-actions"><button className="primary-button small-button" onClick={() => markVisited(currentPlace)}>{visited.includes(currentPlace.id) ? <><Check size={15} /> Been here</> : <><MapPin size={15} /> I’ve been here</>}</button><button className="outline-button" onClick={() => setReviewPlace(currentPlace)}><Star size={15} /> Write a review</button><button className="icon-outline" onClick={() => toggleSaved(currentPlace.id)} aria-label="Save place"><Bookmark size={17} fill={saved.includes(currentPlace.id) ? "currentColor" : "none"} /></button></div><a className="directions-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${currentPlace.name} ${currentPlace.address}`)}`} target="_blank" rel="noreferrer">Get directions <ExternalLink size={14} /></a></div></section></div>}
+      {currentPlace && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedPlace(null); }}><section className="place-detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title"><button className="modal-close" onClick={() => setSelectedPlace(null)} aria-label="Close"><X size={19} /></button><div className="detail-art" style={{ backgroundColor: `${categoryColor(currentPlace.category)}16` }}><span style={{ color: categoryColor(currentPlace.category) }}>{currentPlace.category === "Food" ? "✳" : currentPlace.category === "Shopping" ? "◇" : "✦"}</span><span className="detail-category" style={{ color: categoryColor(currentPlace.category) }}>{currentPlace.category}</span></div><div className="detail-content"><p className="eyebrow">{currentPlace.distance.toFixed(1)} MI FROM YOUR LOCAL GUIDE <span>·</span> {currentPlace.walkMinutes} MIN WALK</p><h2 id="detail-title">{currentPlace.name}</h2><p className="detail-address"><MapPin size={15} />{currentPlace.address || currentPlace.details}</p><p className="detail-description">{tidy(currentPlace.details, 430)}</p>{isSpotlight(currentPlace) && <p className="spotlight-detail"><Sparkles size={14} /><span><b>Just opened · local first look</b><small>{currentPlace.spotlightNote}</small></span></p>}<div className="detail-actions"><button className="primary-button small-button" onClick={() => markVisited(currentPlace)}>{visited.includes(currentPlace.id) ? <><Check size={15} /> Been here</> : <><MapPin size={15} /> I’ve been here</>}</button><button className="outline-button" onClick={() => setReviewPlace(currentPlace)}><Star size={15} /> Write a review</button><button className="icon-outline" onClick={() => toggleSaved(currentPlace.id)} aria-label="Save place"><Bookmark size={17} fill={saved.includes(currentPlace.id) ? "currentColor" : "none"} /></button></div><a className="directions-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${currentPlace.name} ${currentPlace.address}`)}`} target="_blank" rel="noreferrer">Get directions <ExternalLink size={14} /></a></div></section></div>}
 
       {reviewPlace && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setReviewPlace(null); }}><section className="review-modal" role="dialog" aria-modal="true" aria-labelledby="review-title"><button className="modal-close" onClick={() => setReviewPlace(null)} aria-label="Close"><X size={19} /></button><span className="review-modal-icon"><MessageCircle size={21} /></span><p className="eyebrow">PASS THE GOOD WORD ALONG</p><h2 id="review-title">A note for {reviewPlace.name}.</h2><form onSubmit={addReview}><label className="field-label">YOUR RATING<div className="rating-input"><ReviewRatingInput /></div></label><label className="field-label">YOUR REVIEW<textarea name="review" required rows={4} placeholder="What should a neighbour know before they go?" /></label><label className="field-label">YOUR NAME <span className="optional">(optional)</span><input name="author" placeholder="How should we credit you?" /></label><button className="primary-button" type="submit">Share with your neighbours <ArrowRight size={16} /></button></form></section></div>}
 
@@ -457,6 +494,17 @@ export default function NearToMeApp() {
 function ReviewRatingInput() {
   const [rating, setRating] = useState(5);
   return <><ReviewStars rating={rating} onRate={setRating} /><input type="hidden" name="rating" value={rating} /></>;
+}
+
+function EventCard({ event, date }: { event: LocalEvent; date: Date }) {
+  const dateLabel = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(date);
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.venue}, ${event.address}`)}`;
+  return (
+    <article className="event-card">
+      <div className="event-date"><span>{dateLabel.split(" ")[0].toUpperCase()}</span><b>{date.getDate()}</b><small>{date.toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}</small></div>
+      <div className="event-card-copy"><div className="event-meta"><span>{event.category}</span><span>{event.time}</span></div><h3>{event.title}</h3><p>{event.description}</p><a href={mapUrl} target="_blank" rel="noreferrer"><MapPin size={12} /> {event.venue} <ArrowUpRight size={12} /></a><details><summary>More about this event</summary><p>{event.detail} Posted by {event.host}.</p></details></div>
+    </article>
+  );
 }
 
 function SavedCard({ place, saved, onSave, onSelect }: { place: Place; saved: string[]; onSave: (id: string) => void; onSelect: (place: Place) => void }) {

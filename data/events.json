@@ -1,0 +1,86 @@
+[
+  {
+    "id": "hospitality-wednesdays",
+    "title": "Hospitality Wednesdays",
+    "venue": "The George Eliot",
+    "address": "Bridge Street, Nuneaton CV11 4DZ",
+    "day": "Wednesday",
+    "time": "4pm",
+    "category": "Good company",
+    "description": "Midweek games, 2-for-1 pizzas, tapas and local drinks offers.",
+    "detail": "Games include Jenga, Uno, giant Connect 4, cards and more. 2-for-1 pizzas, tapas from £4 and selected drinks offers.",
+    "host": "Bruno"
+  },
+  {
+    "id": "tipsy-karaoke",
+    "title": "Tom’s Tipsy Karaoke",
+    "venue": "The George Eliot",
+    "address": "Bridge Street, Nuneaton CV11 4DZ",
+    "day": "Wednesday",
+    "time": "7pm",
+    "category": "Live music",
+    "description": "Take your turn on the mic. Weekly karaoke from 7pm.",
+    "detail": "Every Wednesday from 7pm. Bring a friend, pick a song and get involved.",
+    "host": "Bruno"
+  },
+  {
+    "id": "betty-bangs",
+    "title": "Betty Bangs",
+    "venue": "The George Eliot",
+    "address": "Bridge Street, Nuneaton CV11 4DZ",
+    "day": "Thursday",
+    "time": "8pm",
+    "category": "Night out",
+    "description": "A weekly drag-hosted bingo and karaoke night until late.",
+    "detail": "Betty Bangs hosts bingo and karaoke every Thursday from 8pm until late.",
+    "host": "Bruno"
+  },
+  {
+    "id": "crew-queens-karaoke",
+    "title": "Thursday Karaoke",
+    "venue": "The Crew & Queens Hall",
+    "address": "75–77 Queens Road, Nuneaton CV11 5LA",
+    "day": "Thursday",
+    "time": "9pm",
+    "category": "Live music",
+    "description": "Get the gang together for karaoke, every Thursday night.",
+    "detail": "Every Thursday from 9pm. Find The Crew & Queens Hall on Queens Road.",
+    "host": "Bruno"
+  },
+  {
+    "id": "feel-good-fridays",
+    "title": "Feel Good Fridays",
+    "venue": "The Silk Mill",
+    "address": "42 Newdegate Street, Nuneaton CV11 4EU",
+    "day": "Friday",
+    "time": "8pm",
+    "category": "Night out",
+    "description": "DJ Macca brings R&B, house, club classics and party anthems.",
+    "detail": "Every Friday from 8pm until 3am. R&B, house, club classics and party anthems.",
+    "host": "Bruno"
+  },
+  {
+    "id": "george-eliot-disco",
+    "title": "Saturday Disco",
+    "venue": "The George Eliot",
+    "address": "Bridge Street, Nuneaton CV11 4DZ",
+    "day": "Saturday",
+    "time": "7pm",
+    "category": "Night out",
+    "description": "Floor fillers and favourite tunes, every Saturday night.",
+    "detail": "Weekly disco every Saturday from 7pm until late.",
+    "host": "Bruno"
+  },
+  {
+    "id": "silky-saturdays",
+    "title": "Silky Saturdays",
+    "venue": "The Silk Mill",
+    "address": "42 Newdegate Street, Nuneaton CV11 4EU",
+    "day": "Saturday",
+    "time": "8pm",
+    "category": "Night out",
+    "description": "DJ Baxter, cocktails and a dancefloor ready for the weekend.",
+    "detail": "Every Saturday from 8pm until late with DJ Baxter, big tracks and drinks flowing.",
+    "host": "Bruno"
+  }
+]

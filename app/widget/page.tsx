@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, MapPin } from "lucide-react";
-import placesData from "@/data/places.json";
+import { ArrowUpRight, CalendarDays, MapPin } from "lucide-react";
+import eventsData from "@/data/events.json";
+import { basePlaces, mergeSeededPlaces, type Place } from "@/lib/directory";
 
-type Place = (typeof placesData)[number];
+const events = eventsData.slice(0, 3);
 
 export default function WidgetPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("Everything");
-  const [places, setPlaces] = useState(placesData as Place[]);
+  const [places, setPlaces] = useState(basePlaces);
   const [baseLocation, setBaseLocation] = useState("Nuneaton, UK");
   const [radius, setRadius] = useState(5);
 
@@ -18,7 +19,7 @@ export default function WidgetPage() {
       const savedPlaces = window.localStorage.getItem("nearfolk:places");
       const savedLocation = window.localStorage.getItem("nearfolk:baseLocation");
       const savedRadius = window.localStorage.getItem("nearfolk:radius");
-      if (savedPlaces) setPlaces(JSON.parse(savedPlaces) as Place[]);
+      if (savedPlaces) setPlaces(mergeSeededPlaces(JSON.parse(savedPlaces) as Place[]));
       if (savedLocation) setBaseLocation(JSON.parse(savedLocation) as string);
       if (savedRadius) setRadius(JSON.parse(savedRadius) as number);
     } catch (error) {
@@ -71,11 +72,13 @@ export default function WidgetPage() {
           ))}
         </div>
       </div>
+      <section className="widget-events"><div className="widget-events-heading"><span><CalendarDays size={14} /> THIS WEEK AROUND HERE</span><small>WEEKLY LOCAL PICKS</small></div><div className="widget-event-list">{events.map((event) => <a key={event.id} href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.venue}, ${event.address}`)}`} target="_blank" rel="noreferrer"><span><b>{event.day.slice(0, 3).toUpperCase()}</b><small>{event.time}</small></span><strong>{event.title}<small>{event.venue}</small></strong><ArrowUpRight size={14} /></a>)}</div></section>
       <div className="widget-list">
         {filtered.map((place) => (
           <article className="widget-place" key={place.id}>
             <span className="widget-category-icon">{place.category === "Food" ? "✳" : place.category === "Shopping" ? "◇" : "⌖"}</span>
             <div className="widget-place-copy">
+              {place.launchSpotlight && place.spotlightEndsAt && Date.parse(place.spotlightEndsAt) > Date.now() && <span className="spotlight-badge"><span>✳</span> JUST OPENED · LOCAL FIRST LOOK</span>}
               <span className="widget-category-label">{place.category}</span>
               <h2>{place.name}</h2>
               <p>{place.address || place.details.slice(0, 100)}</p>
