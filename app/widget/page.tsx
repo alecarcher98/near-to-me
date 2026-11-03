@@ -42,14 +42,23 @@ export default function WidgetPage() {
       <header className="widget-header">
         <a className="brand-lockup" href="/">
           <span className="brand-mark"><MapPin size={19} fill="currentColor" /></span>
-          <span>nearfolk<span className="brand-period">.</span></span>
+          <span>near to me<span className="brand-period">.</span></span>
         </a>
         <span className="widget-powered">LOCAL GUIDE</span>
       </header>
       <section className="widget-intro">
-        <p className="eyebrow">YOUR NEIGHBOURHOOD, WELL SPENT</p>
-        <h1>Good things are<br />closer than you think.</h1>
-        <p>Explore independent favourites, useful stops and little local gems around {baseLocation.split(",")[0]}.</p>
+        <div className="widget-intro-copy">
+          <p className="eyebrow">THE GOOD THINGS, CLOSE BY</p>
+          <h1>Good things are<br />closer than you think.</h1>
+          <p>Explore independent favourites, useful stops and little local gems around <b>{baseLocation.split(",")[0]}.</b></p>
+        </div>
+        <div className="widget-hero-art" aria-hidden="true">
+          <div className="widget-art-orbit" />
+          <div className="widget-art-pin"><MapPin size={28} fill="currentColor" /></div>
+          <span className="widget-art-place place-a">A GOOD LITTLE FIND</span>
+          <span className="widget-art-place place-b">JUST AROUND HERE</span>
+          <span className="widget-art-town">LOCAL<br />LOOKS GOOD<br /><b>ON YOU.</b></span>
+        </div>
       </section>
       <div className="widget-controls">
         <label className="widget-search">
@@ -79,7 +88,7 @@ export default function WidgetPage() {
       </div>
       <footer className="widget-footer">
         <span>Made for curious neighbours</span>
-        <span className="powered-by">LOCAL GUIDE BY <b>NEARFOLK</b></span>
+        <span className="powered-by">LOCAL GUIDE BY <b>NEAR TO ME</b></span>
       </footer>
     </main>
   );

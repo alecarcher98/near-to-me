@@ -1,6 +1,6 @@
-# Nearfolk
+# Near to me
 
-Nearfolk is a local discovery guide for visitors, residents and the businesses that welcome them. It includes a nearby map and directory, saved/visited places, community reviews, a business subscription preview, an embeddable guide, QR-code generation and an area admin.
+Near to me is a local discovery guide for visitors, residents and the businesses that welcome them. It includes a nearby map and directory, saved/visited places, community reviews, a business subscription preview, an embeddable guide, QR-code generation and an area admin.
 
 ## Run locally
 

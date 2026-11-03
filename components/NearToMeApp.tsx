@@ -120,7 +120,7 @@ function ReviewStars({ rating, onRate }: { rating: number; onRate?: (rating: num
   );
 }
 
-export default function NearfolkApp() {
+export default function NearToMeApp() {
   const [tab, setTab] = useState<Tab>("explore");
   const [places, setPlaces] = useState<Place[]>(basePlaces);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -131,7 +131,7 @@ export default function NearfolkApp() {
   const [newArea, setNewArea] = useState("");
   const [radius, setRadius] = useState(5);
   const [company, setCompany] = useState("The Nuneaton Welcome Guide");
-  const [companyUrl, setCompanyUrl] = useState("nuneaton.nearfolk.co.uk");
+  const [companyUrl, setCompanyUrl] = useState("nuneaton.near-to-me.example");
   const [subscription, setSubscription] = useState("Free");
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Everything nearby");
@@ -161,10 +161,11 @@ export default function NearfolkApp() {
       setAreas(read("areas", ["Nuneaton, UK"]));
       setRadius(read("radius", 5));
       setCompany(read("company", "The Nuneaton Welcome Guide"));
-      setCompanyUrl(read("companyUrl", "nuneaton.nearfolk.co.uk"));
+      const savedCompanyUrl = read<string>("companyUrl", "nuneaton.near-to-me.example");
+      setCompanyUrl(savedCompanyUrl === "nuneaton.nearfolk.co.uk" ? "nuneaton.near-to-me.example" : savedCompanyUrl);
       setSubscription(read("subscription", "Free"));
     } catch (error) {
-      console.error("Could not load Nearfolk settings from this browser.", error);
+      console.error("Could not load Near to me settings from this browser.", error);
     }
     setIsLoaded(true);
   }, []);
@@ -189,7 +190,7 @@ export default function NearfolkApp() {
       .sort((a, b) => a.distance - b.distance);
   }, [places, query, radius, selectedCategory]);
 
-  const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/widget?company=${encodeURIComponent(companyUrl)}` : "https://nearfolk.com/widget";
+  const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/widget?company=${encodeURIComponent(companyUrl)}` : "https://near-to-me.example/widget";
   const widgetSnippet = `<iframe src="${shareUrl}" title="${company} local guide" width="100%" height="760" loading="lazy" style="border:0;border-radius:20px"></iframe>`;
   const currentPlace = selectedPlace ? places.find((place) => place.id === selectedPlace.id) ?? selectedPlace : null;
 
@@ -256,7 +257,7 @@ export default function NearfolkApp() {
   return (
     <div className="app-shell">
       <aside className={menuOpen ? "sidebar open" : "sidebar"}>
-        <a className="brand-lockup" href="/" aria-label="Nearfolk home"><BrandMark /><span>nearfolk<span className="brand-period">.</span></span></a>
+        <a className="brand-lockup" href="/" aria-label="Near to me home"><BrandMark /><span>near to me<span className="brand-period">.</span></span></a>
         <div className="sidebar-location">
           <span className="location-label">YOUR LOCAL GUIDE</span>
           <button className="location-select" onClick={() => setTab("admin")}><MapPin size={15} /><span>{baseLocation}</span><ChevronDown size={15} /></button>
@@ -281,7 +282,7 @@ export default function NearfolkApp() {
             <p><b>Know a lovely local?</b><br />Help your neighbourhood shine.</p>
             <button onClick={() => { setNewName(""); setTab("admin"); }} aria-label="Suggest a local place"><ArrowRight size={16} /></button>
           </div>
-          <button className="help-link" onClick={() => setToast("Nearfolk brings your local guide and community together.")}><CircleHelp size={17} /> Help & feedback</button>
+          <button className="help-link" onClick={() => setToast("Near to me brings your local guide and community together.")}><CircleHelp size={17} /> Help & feedback</button>
           <div className="account-row"><div className="avatar">NF</div><div><b>Neighbour account</b><span>Free explorer</span></div><ChevronDown size={15} /></div>
         </div>
       </aside>
@@ -290,20 +291,49 @@ export default function NearfolkApp() {
       <main className="main-panel">
         <header className="topbar">
           <button className="mobile-menu" onClick={() => setMenuOpen(true)} aria-label="Open menu"><Menu size={21} /></button>
-          <div className="breadcrumb"><span>Nearfolk</span><ChevronRight size={14} /><b>{tab === "explore" ? "Explore" : tab === "saved" ? "Saved places" : tab === "reviews" ? "Local reviews" : tab === "business" ? "Business toolkit" : "Area admin"}</b></div>
+          <a className="mobile-wordmark" href="/">near to me<span>.</span></a>
+          <div className="breadcrumb"><span>Near to me</span><ChevronRight size={14} /><b>{tab === "explore" ? "Explore" : tab === "saved" ? "Saved places" : tab === "reviews" ? "Local reviews" : tab === "business" ? "Business toolkit" : "Area admin"}</b></div>
           <div className="topbar-actions"><span className="status-dot" /> Live local guide <button className="share-top" onClick={() => copy(shareUrl, "Guide link copied")}><Share2 size={15} /> Share guide</button></div>
         </header>
 
         <div className="content-wrap">
           {tab === "explore" && (
             <>
-              <div className="welcome-row">
-                <div><p className="eyebrow">A LITTLE CLOSER TO HOME</p><h1>Find your kind of <span>nearby.</span></h1><p className="welcome-sub">Good places, useful stops and local favourites around <b>{baseLocation.split(",")[0]}</b>.</p></div>
-                <button className="location-pill" onClick={() => setTab("admin")}><LocateFixed size={16} /><span>{baseLocation}</span><ChevronDown size={15} /></button>
-              </div>
+              <section className="local-hero">
+                <div className="hero-topline"><span><i /> THE NEIGHBOURHOOD EDITION</span><button onClick={() => setTab("admin")}><MapPin size={14} /> {baseLocation}<ArrowUpRight size={13} /></button></div>
+                <div className="hero-layout">
+                  <div className="hero-copy">
+                    <p className="hero-kicker">A GOOD PLACE TO START</p>
+                    <h1>GOOD THINGS<br />ARE RIGHT<br /><span>AROUND</span> <i>HERE.</i></h1>
+                    <p className="hero-description">The places that make this place. Find a new favourite, a familiar face, or a very good reason to take the long way home.</p>
+                    <button className="hero-cta" onClick={() => document.getElementById("local-directory")?.scrollIntoView({ behavior: "smooth" })}>MEET YOUR NEIGHBOURHOOD <ArrowDown size={15} /></button>
+                  </div>
+                  <div className="hero-map-art" aria-label={`Illustrated map of ${baseLocation.split(",")[0]}`}>
+                    <div className="hero-map-grid" />
+                    <svg className="hero-streets" viewBox="0 0 560 440" fill="none" aria-hidden="true">
+                      <path className="hero-street-minor" d="M-25 79C79 109 116 25 218 73S367 151 582 67M-28 173C89 138 142 184 234 164s182-75 365-26M-25 308c97-85 177-29 244-58s123-114 212-95 93 43 153 38M38-20c20 106 105 130 75 235S60 362 157 478M229-30c-36 104 63 158 31 246s-23 142 49 240M416-30c-29 95 50 136 15 224s-27 160 60 246" />
+                      <path className="hero-street-major" d="M-34 365c99-87 202-74 274-114s111-119 189-159 113-23 161-51M142-29c32 123 161 143 185 233s76 147 130 265" />
+                      <path className="hero-river" d="M-35 247c99-28 148 24 231 3s135-52 207-25 123 43 192 14" />
+                      <path className="hero-route" d="M89 344c79-56 105-143 205-150s126-66 190-99" />
+                    </svg>
+                    <span className="hero-map-caption caption-north">RIVERSIDE WALK</span>
+                    <span className="hero-map-caption caption-east">MARKET PLACE</span>
+                    <span className="hero-map-caption caption-south">ABBEY GREEN</span>
+                    <span className="hero-map-caption caption-west">QUEENS ROAD</span>
+                    <span className="hero-map-orbit orbit-one" /><span className="hero-map-orbit orbit-two" />
+                    <span className="hero-map-pin pin-one"><MapPin size={20} fill="currentColor" /></span>
+                    <span className="hero-map-pin pin-two"><MapPin size={17} fill="currentColor" /></span>
+                    <span className="hero-map-pin pin-three"><MapPin size={15} fill="currentColor" /></span>
+                    <div className="hero-town-marker"><span>N</span><b>{baseLocation.split(",")[0]}</b><i>YOU ARE HERE</i></div>
+                    <div className="hero-place-float"><span>01</span><div><b>{filteredPlaces[0]?.name ?? "Local favourites"}</b><small>{filteredPlaces[0]?.category ?? "NEARBY FIND"}</small></div><ArrowUpRight size={15} /></div>
+                    <div className="hero-map-stamp">GOOD<br />THINGS<br /><span>NEARBY</span></div>
+                  </div>
+                </div>
+                <div className="hero-bottomline"><span>YOUR LOCAL GUIDE</span><span>{places.length} PLACES <i>✳</i> {categories.length - 1} CATEGORIES <i>✳</i> ONE VERY GOOD AREA</span><span>SCROLL TO EXPLORE <ArrowDown size={12} /></span></div>
+              </section>
 
-              <div className="toolbar">
-                <label className="searchbox"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search places, food, parking…" /><kbd>⌘ K</kbd></label>
+              <div className="toolbar toolbar-docked">
+                <label className="searchbox"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="What are we looking for?" /><kbd>⌘ K</kbd></label>
                 <button className="filter-button" onClick={() => setRadius((value) => value === 1 ? 5 : value === 5 ? 10 : 1)}><Filter size={16} /> Within {radius} mi <ChevronDown size={14} /></button>
               </div>
 
@@ -313,7 +343,7 @@ export default function NearfolkApp() {
                 </button>)}
               </div>
 
-              <div className="explore-heading"><div><h2>All around you</h2><p>{filteredPlaces.length} local places <span>·</span> refreshed for {baseLocation.split(",")[0]}</p></div><button className="text-button" onClick={() => setTab("saved")}><Bookmark size={15} /> Your saved list <ArrowRight size={15} /></button></div>
+              <div className="explore-heading" id="local-directory"><div><span className="section-index">01 / THE LOCAL EDIT</span><h2>Right around <i>you.</i></h2><p>{filteredPlaces.length} local places <span>·</span> refreshed for {baseLocation.split(",")[0]}</p></div><button className="text-button" onClick={() => setTab("saved")}><Bookmark size={15} /> Your saved list <ArrowRight size={15} /></button></div>
 
               <div className="discovery-grid">
                 <section className="map-column" aria-label="Nearby places map">
@@ -404,7 +434,7 @@ export default function NearfolkApp() {
                     <div className="admin-place-list">{places.slice(-4).reverse().map((place) => <div className="admin-place-row" key={place.id}><span className="admin-place-dot" style={{ backgroundColor: categoryColor(place.category) }} /><span><b>{place.name}</b><small>{place.category} · {place.address}</small></span>{!basePlaces.some((item) => item.id === place.id) && <button onClick={() => removePlace(place.id)} aria-label={`Remove ${place.name}`}><Trash2 size={15} /></button>}</div>)}</div></section>
                 </div>
                 <aside className="admin-side-column">
-                  <section className="qr-card"><span className="qr-label"><QrCode size={15} /> YOUR GUEST QR</span><h2>Ready to scan.<br />Ready to explore.</h2><p>Put your local guide right where your guests need it.</p><div className="qr-frame"><QRCodeSVG value={shareUrl} size={160} bgColor="#ffffff" fgColor="#102d25" level="H" includeMargin /></div><div className="qr-meta"><b>{company}</b><span>{companyUrl}</span></div><button className="qr-download" onClick={() => { const svg = document.querySelector(".qr-frame svg"); if (!svg) return; const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: "image/svg+xml;charset=utf-8" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "nearfolk-guest-guide.svg"; link.click(); URL.revokeObjectURL(link.href); setToast("Your QR code is ready to use."); }}><Upload size={15} /> Download QR code</button><button className="qr-share" onClick={() => copy(shareUrl, "QR guide link copied")}>Copy guide link <Copy size={14} /></button></section>
+                  <section className="qr-card"><span className="qr-label"><QrCode size={15} /> YOUR GUEST QR</span><h2>Ready to scan.<br />Ready to explore.</h2><p>Put your local guide right where your guests need it.</p><div className="qr-frame"><QRCodeSVG value={shareUrl} size={160} bgColor="#ffffff" fgColor="#102d25" level="H" includeMargin /></div><div className="qr-meta"><b>{company}</b><span>{companyUrl}</span></div><button className="qr-download" onClick={() => { const svg = document.querySelector(".qr-frame svg"); if (!svg) return; const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: "image/svg+xml;charset=utf-8" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "near-to-me-guest-guide.svg"; link.click(); URL.revokeObjectURL(link.href); setToast("Your QR code is ready to use."); }}><Upload size={15} /> Download QR code</button><button className="qr-share" onClick={() => copy(shareUrl, "QR guide link copied")}>Copy guide link <Copy size={14} /></button></section>
                   <section className="launch-card"><span className="launch-icon"><Sparkles size={17} /></span><h3>It’s a good day to go local.</h3><p>Your QR code and embed show the same live list, so every update reaches your guests.</p><a href="/widget" target="_blank">Preview your guide <ArrowUpRight size={14} /></a></section>
                   <section className="admin-help"><ShieldCheck size={17} /><div><b>Local-first by design</b><p>This preview stores your edits in this browser. Add a hosted database and geocoding service before launching to multiple live business accounts.</p></div></section>
                 </aside>
@@ -412,7 +442,7 @@ export default function NearfolkApp() {
             </section>
           )}
         </div>
-        <footer className="main-footer"><span>© 2025 Nearfolk</span><span>Made for the places that make a place.</span><button onClick={() => setTab("business")}>For local businesses <ArrowUpRight size={13} /></button></footer>
+        <footer className="main-footer"><span>© 2025 Near to me</span><span>Made for the places that make a place.</span><button onClick={() => setTab("business")}>For local businesses <ArrowUpRight size={13} /></button></footer>
       </main>
 
       {currentPlace && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedPlace(null); }}><section className="place-detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title"><button className="modal-close" onClick={() => setSelectedPlace(null)} aria-label="Close"><X size={19} /></button><div className="detail-art" style={{ backgroundColor: `${categoryColor(currentPlace.category)}16` }}><span style={{ color: categoryColor(currentPlace.category) }}>{currentPlace.category === "Food" ? "✳" : currentPlace.category === "Shopping" ? "◇" : "✦"}</span><span className="detail-category" style={{ color: categoryColor(currentPlace.category) }}>{currentPlace.category}</span></div><div className="detail-content"><p className="eyebrow">{currentPlace.distance.toFixed(1)} MI FROM YOUR LOCAL GUIDE <span>·</span> {currentPlace.walkMinutes} MIN WALK</p><h2 id="detail-title">{currentPlace.name}</h2><p className="detail-address"><MapPin size={15} />{currentPlace.address || currentPlace.details}</p><p className="detail-description">{tidy(currentPlace.details, 430)}</p><div className="detail-actions"><button className="primary-button small-button" onClick={() => markVisited(currentPlace)}>{visited.includes(currentPlace.id) ? <><Check size={15} /> Been here</> : <><MapPin size={15} /> I’ve been here</>}</button><button className="outline-button" onClick={() => setReviewPlace(currentPlace)}><Star size={15} /> Write a review</button><button className="icon-outline" onClick={() => toggleSaved(currentPlace.id)} aria-label="Save place"><Bookmark size={17} fill={saved.includes(currentPlace.id) ? "currentColor" : "none"} /></button></div><a className="directions-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${currentPlace.name} ${currentPlace.address}`)}`} target="_blank" rel="noreferrer">Get directions <ExternalLink size={14} /></a></div></section></div>}

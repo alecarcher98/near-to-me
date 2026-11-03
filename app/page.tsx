@@ -1,5 +1,5 @@
-import NearfolkApp from "@/components/NearfolkApp";
+import NearToMeApp from "@/components/NearToMeApp";
 
 export default function Home() {
-  return <NearfolkApp />;
+  return <NearToMeApp />;
 }
