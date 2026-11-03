@@ -5,7 +5,7 @@ import { ArrowUpRight, CalendarDays, MapPin } from "lucide-react";
 import eventsData from "@/data/events.json";
 import { basePlaces, mergeSeededPlaces, type Place } from "@/lib/directory";
 
-const events = eventsData.slice(0, 3);
+const events = eventsData.filter((event) => !("date" in event)).slice(0, 3);
 
 export default function WidgetPage() {
   const [query, setQuery] = useState("");

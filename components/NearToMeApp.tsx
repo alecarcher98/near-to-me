@@ -43,8 +43,21 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import weeklyEvents from "@/data/events.json";
-import { basePlaces, isSpotlight, mergeSeededPlaces, type Place } from "@/lib/directory";
-type LocalEvent = (typeof weeklyEvents)[number];
+import { basePlaces, createLocalPlace, isSpotlight, mergeSeededPlaces, type Place } from "@/lib/directory";
+type LocalEvent = {
+  id: string;
+  title: string;
+  venue: string;
+  address: string;
+  day: string;
+  date?: string;
+  time: string;
+  category: string;
+  description: string;
+  detail: string;
+  host: string;
+  posted?: string;
+};
 type Review = {
   id: string;
   placeId: string;
@@ -79,7 +92,7 @@ const categoryColors: Record<string, string> = {
   Laundry: "#7954c5",
   "A&E": "#d43d50",
 };
-const events = weeklyEvents as LocalEvent[];
+const events: LocalEvent[] = weeklyEvents;
 const navItems: { id: Tab; label: string; icon: typeof Compass }[] = [
   { id: "explore", label: "Explore places", icon: Compass },
   { id: "saved", label: "Your saved list", icon: Bookmark },
@@ -95,12 +108,12 @@ function tidy(text: string, maximum = 118) {
   return result.length > maximum ? `${result.slice(0, maximum).trim()}…` : result;
 }
 
-function nextEventDate(day: string, time: string, now: Date) {
+function nextEventDate(event: LocalEvent, now: Date) {
   const dayNumbers: Record<string, number> = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
-  const eventDate = new Date(now);
+  const eventDate = event.date ? new Date(`${event.date}T00:00:00`) : new Date(now);
   eventDate.setHours(0, 0, 0, 0);
-  eventDate.setDate(now.getDate() + ((dayNumbers[day] - now.getDay() + 7) % 7));
-  const match = time.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
+  if (!event.date) eventDate.setDate(now.getDate() + ((dayNumbers[event.day] - now.getDay() + 7) % 7));
+  const match = event.time.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
   if (match) {
     let hours = Number(match[1]) % 12;
     if (match[3].toLowerCase() === "pm") hours += 12;
@@ -199,14 +212,18 @@ export default function NearToMeApp() {
 
   const thisWeekEvents = useMemo(() => {
     const now = new Date();
-    const nextMonday = new Date(now);
-    nextMonday.setHours(0, 0, 0, 0);
-    nextMonday.setDate(now.getDate() + ((8 - now.getDay()) % 7 || 7));
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const nextMonday = new Date(today);
+    nextMonday.setDate(today.getDate() + ((8 - today.getDay()) % 7 || 7));
+    // Keep tonight's events listed for the rest of the day, not just until they start.
     return events
-      .map((event) => ({ ...event, eventDate: nextEventDate(event.day, event.time, now) }))
-      .filter((event) => event.eventDate >= now && event.eventDate < nextMonday)
+      .map((event) => ({ ...event, eventDate: nextEventDate(event, now) }))
+      .filter((event) => event.eventDate >= today && event.eventDate < nextMonday)
       .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
   }, []);
+
+  const justOpened = useMemo(() => places.filter((place) => isSpotlight(place)), [places]);
 
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/widget?company=${encodeURIComponent(companyUrl)}` : "https://near-to-me.example/widget";
   const widgetSnippet = `<iframe src="${shareUrl}" title="${company} local guide" width="100%" height="760" loading="lazy" style="border:0;border-radius:20px"></iframe>`;
@@ -250,24 +267,13 @@ export default function NearToMeApp() {
     if (!newName.trim() || !newAddress.trim()) return;
     const formData = new FormData(event.currentTarget);
     const launchSpotlight = formData.get("launchSpotlight") === "on";
-    const seed = newName.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    const slug = `${newName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Date.now().toString().slice(-5)}`;
-    const spotlightEndsAt = new Date();
-    spotlightEndsAt.setDate(spotlightEndsAt.getDate() + 21);
-    setPlaces((current) => [...current, {
-      id: slug,
+    setPlaces((current) => [...current, createLocalPlace({
       name: newName.trim(),
       category: newCategory,
-      distance: Math.max(0.1, ((seed % 35) + 10) / 10),
-      walkMinutes: Math.max(2, Math.round(((seed % 35) + 10) / 10 * 20)),
-      details: newDescription.trim() || "A local place, added by the area guide administrator.",
       address: newAddress.trim(),
-      x: 20 + seed % 65,
-      y: 18 + (seed * 3) % 66,
+      details: newDescription.trim() || "A local place, added by the area guide administrator.",
       launchSpotlight,
-      spotlightEndsAt: launchSpotlight ? spotlightEndsAt.toISOString() : undefined,
-      spotlightNote: launchSpotlight ? "New local opening — featured for its first three weeks." : undefined,
-    }]);
+    })]);
     setNewName("");
     setNewAddress("");
     setNewDescription("");
@@ -367,6 +373,24 @@ export default function NearToMeApp() {
                   {category !== "Everything nearby" && <span className="category-dot" style={{ backgroundColor: categoryColor(category) }} />}{category}
                 </button>)}
               </div>
+
+              {justOpened.length > 0 && (
+                <section className="just-opened" aria-labelledby="just-opened-title">
+                  <div className="just-opened-heading"><span className="section-index">01 / FRESH ON THE HIGH STREET</span><h2 id="just-opened-title">Just opened, <i>go say hello.</i></h2><p>New places get a first-look spot for their opening weeks.</p></div>
+                  <div className="just-opened-grid">
+                    {justOpened.map((place) => (
+                      <button key={place.id} className="just-opened-card" onClick={() => setSelectedPlace(place)}>
+                        <span className="spotlight-badge"><Sparkles size={10} /> JUST OPENED</span>
+                        <span className="place-category" style={{ color: categoryColor(place.category) }}>{place.category}</span>
+                        <b>{place.name}</b>
+                        <span className="place-address">{place.address}</span>
+                        <span className="just-opened-detail">{tidy(place.details, 96)}</span>
+                        <span className="just-opened-link">Take a look <ArrowUpRight size={13} /></span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               <section className="events-section" aria-labelledby="events-title">
                 <div className="events-heading">
@@ -497,12 +521,13 @@ function ReviewRatingInput() {
 }
 
 function EventCard({ event, date }: { event: LocalEvent; date: Date }) {
+  const postedLabel = event.posted ? new Date(`${event.posted}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
   const dateLabel = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(date);
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.venue}, ${event.address}`)}`;
   return (
     <article className="event-card">
       <div className="event-date"><span>{dateLabel.split(" ")[0].toUpperCase()}</span><b>{date.getDate()}</b><small>{date.toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}</small></div>
-      <div className="event-card-copy"><div className="event-meta"><span>{event.category}</span><span>{event.time}</span></div><h3>{event.title}</h3><p>{event.description}</p><a href={mapUrl} target="_blank" rel="noreferrer"><MapPin size={12} /> {event.venue} <ArrowUpRight size={12} /></a><details><summary>More about this event</summary><p>{event.detail} Posted by {event.host}.</p></details></div>
+      <div className="event-card-copy"><div className="event-meta"><span>{event.category}</span><span>{event.date ? "One night only" : `Every ${event.day}`} · {event.time}</span></div><h3>{event.title}</h3><p>{event.description}</p><a href={mapUrl} target="_blank" rel="noreferrer"><MapPin size={12} /> {event.venue} <ArrowUpRight size={12} /></a><details><summary>More about this event</summary><p>{event.detail}</p><p className="event-posted">Posted by {event.host}{postedLabel && ` · ${postedLabel}`}</p></details></div>
     </article>
   );
 }

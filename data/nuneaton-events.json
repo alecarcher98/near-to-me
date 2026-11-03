@@ -8,8 +8,9 @@
     "time": "4pm",
     "category": "Good company",
     "description": "Midweek games, 2-for-1 pizzas, tapas and local drinks offers.",
-    "detail": "Games include Jenga, Uno, giant Connect 4, cards and more. 2-for-1 pizzas, tapas from £4 and selected drinks offers.",
-    "host": "Bruno"
+    "detail": "Games: Jenga, Uno, giant Connect 4, cards, gladiator duelling and more. 2-for-1 pizzas, tapas £4 each. Drinks: Carling, Shipyard & Somersby £2.88; 2 WKDs £5.50; Corky’s 4 for £5; 4 shots/bombs £10; vodka mixer £3.50; 2 cocktails for £10.",
+    "host": "Bruno",
+    "posted": "2026-10-20"
   },
   {
     "id": "tipsy-karaoke",
@@ -20,8 +21,9 @@
     "time": "7pm",
     "category": "Live music",
     "description": "Take your turn on the mic. Weekly karaoke from 7pm.",
-    "detail": "Every Wednesday from 7pm. Bring a friend, pick a song and get involved.",
-    "host": "Bruno"
+    "detail": "Every Wednesday from 7pm, on the back of Hospitality Wednesdays. Bring a friend, pick a song and get involved.",
+    "host": "Bruno",
+    "posted": "2026-10-20"
   },
   {
     "id": "betty-bangs",
@@ -33,7 +35,8 @@
     "category": "Night out",
     "description": "A weekly drag-hosted bingo and karaoke night until late.",
     "detail": "Betty Bangs hosts bingo and karaoke every Thursday from 8pm until late.",
-    "host": "Bruno"
+    "host": "Bruno",
+    "posted": "2026-10-20"
   },
   {
     "id": "crew-queens-karaoke",
@@ -45,7 +48,8 @@
     "category": "Live music",
     "description": "Get the gang together for karaoke, every Thursday night.",
     "detail": "Every Thursday from 9pm. Find The Crew & Queens Hall on Queens Road.",
-    "host": "Bruno"
+    "host": "Bruno",
+    "posted": "2026-10-20"
   },
   {
     "id": "feel-good-fridays",
@@ -56,8 +60,9 @@
     "time": "8pm",
     "category": "Night out",
     "description": "DJ Macca brings R&B, house, club classics and party anthems.",
-    "detail": "Every Friday from 8pm until 3am. R&B, house, club classics and party anthems.",
-    "host": "Bruno"
+    "detail": "The one and only DJ Macca, every Friday 8pm right through till 3am. R&B, house, club classics and party anthems all night long.",
+    "host": "Bruno",
+    "posted": "2026-10-20"
   },
   {
     "id": "george-eliot-disco",
@@ -68,8 +73,9 @@
     "time": "7pm",
     "category": "Night out",
     "description": "Floor fillers and favourite tunes, every Saturday night.",
-    "detail": "Weekly disco every Saturday from 7pm until late.",
-    "host": "Bruno"
+    "detail": "Floor fillers, absolute bangers and all your favourite tunes. Every Saturday 7pm till late.",
+    "host": "Bruno",
+    "posted": "2026-10-20"
   },
   {
     "id": "silky-saturdays",
@@ -80,7 +86,36 @@
     "time": "8pm",
     "category": "Night out",
     "description": "DJ Baxter, cocktails and a dancefloor ready for the weekend.",
-    "detail": "Every Saturday from 8pm until late with DJ Baxter, big tracks and drinks flowing.",
-    "host": "Bruno"
+    "detail": "DJ Baxter from 8pm with big tracks and big energy. Cocktails, shots, bottles and pints flowing all night. Until late.",
+    "host": "Bruno",
+    "posted": "2026-10-20"
+  },
+  {
+    "id": "george-eliot-halloween-2026",
+    "title": "Halloween Party",
+    "venue": "The George Eliot",
+    "address": "Bridge Street, Nuneaton CV11 4DZ",
+    "day": "Saturday",
+    "date": "2026-10-31",
+    "time": "Evening",
+    "category": "Night out",
+    "description": "DJ Kish brings monster tunes and spooky bangers. Fancy dress encouraged.",
+    "detail": "Saturday 31 October. DJ Kish is in the house with spooky bangers and dancefloor anthems all night. Fancy dress encouraged, with a prize for the best dressed.",
+    "host": "Bruno",
+    "posted": "2026-10-20"
+  },
+  {
+    "id": "piero-lounge-bingo-2026-10-30",
+    "title": "Bingo",
+    "venue": "Piero Lounge",
+    "address": "24 Market Place, Nuneaton CV11 4EG",
+    "day": "Friday",
+    "date": "2026-10-30",
+    "time": "7pm",
+    "category": "Good company",
+    "description": "An hour of bingo at Piero Lounge, 7pm–8pm.",
+    "detail": "Friday 30 October, 7pm–8pm.",
+    "host": "Bruno",
+    "posted": "2026-10-20"
   }
 ]

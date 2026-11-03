@@ -13,7 +13,7 @@ Open [http://localhost:3000](http://localhost:3000). Run `npm run build` for a p
 
 ## Included LinQR directory
 
-The supplied LinQR guest-directory snapshot is imported into `data/places.json` (131 places across parking, travel, cash access, A&E, laundry, food, pubs, attractions and shopping). Seven weekly events are in `data/events.json`; the dated Halloween party and October bingo are omitted from this week's schedule because they have passed. The newly opened Alanya Turkish Restaurant and the Jailhouse pub are featured for three weeks; the Jailhouse's precise address and opening details are explicitly marked for confirmation.
+The supplied LinQR guest-directory snapshot is imported into `data/places.json` (130 places across parking, travel, cash access, A&E, laundry, food, pubs, attractions and shopping). `data/events.json` holds seven weekly events plus two dated one-offs (the 31 Oct Halloween party and 30 Oct bingo); dated events only appear in the week they happen. Newly opened places (Alanya Turkish Restaurant and The Jail House Pub & Bistro) get a three-week "Just opened" spotlight: a section at the top of Explore and first position in the directory. Businesses that sign up with a recent opening date get the same spotlight automatically.
 
 ## Preview scope
 

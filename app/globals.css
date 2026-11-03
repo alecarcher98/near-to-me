@@ -490,3 +490,32 @@ body { background: var(--page); }
   .account-page { padding: 0 12px 20px; }.account-header { height: 60px; }.account-content { display: flex; flex-direction: column; min-height: 0; margin-top: 12px; }.account-story { min-height: 240px; padding: 24px 21px; }.account-kicker { margin-bottom: 14px; font-size: 7px; }.account-story h1 { font-size: clamp(49px,13vw,68px); }.account-story > p { max-width: 265px; margin-top: 13px; font-size: 9px; }.account-story-stamp { right: 8%; bottom: 21%; width: 76px; height: 76px; }.account-story-stamp span { font-size: 8px; }.account-story-foot { right: 14px; bottom: 10px; left: 14px; padding-top: 8px; font-size: 5px; }.account-form-panel { padding: 19px 16px 16px; }.account-form-top { font-size: 6px; }.account-tabs { margin-top: 13px; }.account-form-eyebrow { margin-top: 16px; }.account-form-panel h2 { font-size: 24px; }.account-form-intro { margin-bottom: 9px; }.role-picker { gap: 5px; }.role-option { gap: 5px; padding: 8px 6px; }.role-option b { font-size: 7px; }.role-option small { font-size: 6px; }.account-field { font-size: 6px; }.account-field input,.account-field select { height: 35px; font-size: 9px; }.business-signup-fields { gap: 6px; }.business-callout { gap: 6px; padding: 8px; }.account-back { font-size: 8px; }
   .widget-event-list { grid-template-columns: 1fr; }.widget-event-list > a { padding: 8px; }.widget-event-list > a > strong { font-size: 8px; }.widget-event-list > a > strong small { font-size: 7px; }
 }
+.event-card details .event-posted { margin-top: 4px; color: #a0a698; }
+.just-opened { margin: 0 0 24px; padding: 17px 0 15px; border-top: 1px solid #dedfd3; }
+.just-opened-heading { margin-bottom: 13px; }
+.just-opened-heading h2 { margin: 0 0 4px; font-family: var(--display); font-size: clamp(22px,2.7vw,29px); letter-spacing: -1.2px; }
+.just-opened-heading h2 i { color: #678148; font-style: normal; }
+.just-opened-heading p { margin: 0; color: #828a7d; font-size: 9px; }
+.just-opened-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 7px; }
+.just-opened-card { position: relative; display: grid; align-content: start; gap: 3px; min-width: 0; padding: 12px 12px 12px 14px; border: 1px solid #d9e2b4; color: inherit; background: #fbfbe9; text-align: left; transition: border-color .16s, background .16s; }
+.just-opened-card::before { position: absolute; inset: 0 auto 0 0; width: 3px; background: #98b43e; content: ""; }
+.just-opened-card:hover { border-color: #b7c993; background: #fffff2; }
+.just-opened-card b { color: #1b3829; font-size: 13px; }
+.just-opened-card .place-address { color: #6f7a6c; font-size: 8px; }
+.just-opened-detail { color: #7d867b; font-size: 8px; line-height: 1.5; }
+.just-opened-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; color: #476c48; font-size: 8px; font-weight: 800; }
+@media (max-width: 700px) { .just-opened { margin-bottom: 18px; }.just-opened-heading h2 { font-size: 21px; }.just-opened-grid { grid-template-columns: 1fr; } }
+.account-form > .wide,.business-signup-fields > .wide,.account-subhead,.account-spotlight-note,.account-form > .account-check { grid-column: 1/-1; }
+.account-optional { margin-left: 4px; color: #a1a696; font-size: 6px; }
+.account-field textarea { width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid #e2e5db; border-radius: 0; outline: 0; color: #314c38; background: #fff; font: inherit; font-size: 9px; font-weight: 400; letter-spacing: 0; line-height: 1.5; resize: vertical; }.account-field textarea:focus { border-color: #839f56; }.account-field textarea::placeholder { color: #a4aa9e; }
+.account-input-icon input[type="date"] { color: #314c38; }
+.business-signup-fields { margin: 8px 0 4px; padding: 10px 11px 6px; border: 1px solid #e2e6d9; background: #f8f9f0; }
+.account-subhead { display: flex; align-items: center; gap: 6px; margin: 0 0 2px; color: #476b40; font-size: 7px; font-weight: 800; letter-spacing: .9px; }
+.account-spotlight-note { display: flex; align-items: flex-start; gap: 6px; margin: 4px 0 6px; padding: 7px 8px; color: #3e5a35; background: #eef5cf; font-size: 7px; line-height: 1.5; }.account-spotlight-note svg { flex: 0 0 auto; color: #5b7c28; }
+.account-check { display: flex; align-items: center; gap: 6px; margin: 5px 0 0; color: #6f7a6c; font-size: 8px; }.account-check input { width: 12px; height: 12px; accent-color: #759542; }.account-check a { color: #5d7545; text-decoration: underline; text-underline-offset: 2px; }
+.account-business { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: 28px; align-items: center; max-width: 1180px; margin: 22px auto 0; padding: 34px clamp(22px,4vw,46px); color: #f8f6e8; background: #153b2d; box-shadow: 0 15px 48px #243a2310; }
+.account-business h2 { margin: 0; color: #faf8ea; font-size: clamp(34px,4vw,50px); letter-spacing: -.07em; line-height: .95; }.account-business h2 em { color: var(--acid); font-style: normal; }
+.account-business-copy > p { max-width: 380px; margin: 14px 0 18px; color: #bfcebf; font-size: 10px; line-height: 1.7; }
+.account-business-cta { display: inline-flex; align-items: center; gap: 10px; padding: 12px 14px; border: 0; color: #183728; background: var(--acid); font-size: 9px; font-weight: 800; }.account-business-cta:hover { background: #c2f033; }
+.account-business-perks { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }.account-business-perks li { display: flex; align-items: flex-start; gap: 11px; padding: 13px; border: 1px solid #ffffff24; background: #ffffff08; }.account-business-perks svg { flex: 0 0 auto; color: var(--acid); }.account-business-perks span { display: grid; gap: 3px; }.account-business-perks b { font-size: 10px; }.account-business-perks small { color: #b8c5b7; font-size: 8px; line-height: 1.5; }
+@media (max-width: 700px) { .account-business { grid-template-columns: 1fr; gap: 18px; margin-top: 14px; padding: 24px 18px; }.business-signup-fields { grid-template-columns: 1fr; }.account-form { grid-template-columns: 1fr; } }

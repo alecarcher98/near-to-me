@@ -8,7 +8,7 @@
     "details": "Pay & display, contactless or RingGo 90520. Any time: up to 1hr £1, 2hr £2, 3hr £3, 4hr £4, 24hr £7. Sun & bank holidays 8am–midnight £1. No EV charging.",
     "address": "Abbey Street, Nuneaton CV11 5BU",
     "x": 52.2,
-    "y": 74.0,
+    "y": 74,
     "rating": null,
     "ratingCount": 0
   },
@@ -21,7 +21,7 @@
     "details": "Pay & display, RingGo 90501. Mon–Sat 8am–6pm: 1hr £1, 2hr £2, 3hr £3, 4hr £4, 24hr £6. Sun 8am–6pm £1. Free 6pm–8am. what3words ///fines.doing.lock",
     "address": "Upper Abbey Street, Nuneaton CV11 5DH",
     "x": 59.1,
-    "y": 20.0,
+    "y": 20,
     "rating": null,
     "ratingCount": 0
   },
@@ -86,7 +86,7 @@
     "details": "Pay & display, RingGo 90508. Mon–Sat 8am–6pm: 1hr £1.50, 2hr £2.50, 3hr £3.50, 4hr £4.50, over 4hr £8. Sun 8am–6pm £1. Free 6pm–8am. what3words ///taken.bonus.deflection",
     "address": "Nuneaton",
     "x": 24.4,
-    "y": 66.0,
+    "y": 66,
     "rating": null,
     "ratingCount": 0
   },
@@ -137,7 +137,7 @@
     "walkMinutes": 4,
     "details": "Travel agent. Mon–Thu & Sat 9am–5:30pm, Fri 9:30am–5:30pm, closed Sunday.",
     "address": "024 7634 75718 Newdegate Street, Nuneaton CV11 4EN",
-    "x": 42.0,
+    "x": 42,
     "y": 72.6,
     "rating": null,
     "ratingCount": 0
@@ -189,7 +189,7 @@
     "walkMinutes": 2,
     "details": "Currency exchange. Mon & Wed–Sat 9am–5:30pm, Tue 9:30am–5:30pm, Sun 10am–4pm.",
     "address": "Ropewalk Shopping Centre, Chapel Street, Nuneaton CV11 5TZ",
-    "x": 62.0,
+    "x": 62,
     "y": 38.6,
     "rating": null,
     "ratingCount": 0
@@ -228,7 +228,7 @@
     "walkMinutes": 3,
     "details": "Bank. Mon–Tue & Thu–Fri 9:30am–3:30pm, Wed 10am–3:30pm, Sat 9:30am–1pm, closed Sunday.",
     "address": "129 Abbey Street, Nuneaton CV11 5BW",
-    "x": 85.0,
+    "x": 85,
     "y": 42.3,
     "rating": null,
     "ratingCount": 0
@@ -254,8 +254,8 @@
     "walkMinutes": 4,
     "details": "Building society. Mon–Fri 9am–2pm, Sat 9am–12pm, closed Sunday.",
     "address": "10 Newdegate Street, Nuneaton CV11 4EL",
-    "x": 34.0,
-    "y": 51.0,
+    "x": 34,
+    "y": 51,
     "rating": null,
     "ratingCount": 0
   },
@@ -293,7 +293,7 @@
     "walkMinutes": 7,
     "details": "Bureau de change at ASDA. Mon–Sat 9am–6pm, Sun 10:30am–4pm.",
     "address": "ASDA, Newton Road, Nuneaton CV11 4FL",
-    "x": 78.0,
+    "x": 78,
     "y": 72.6,
     "rating": null,
     "ratingCount": 0
@@ -306,7 +306,7 @@
     "walkMinutes": 19,
     "details": "Bank. Mon–Fri 9:30am–3pm, Sat 9:30am–12:30pm, closed Sunday.",
     "address": "35 Newdegate Street, Nuneaton CV11 4JX",
-    "x": 27.0,
+    "x": 27,
     "y": 42.2,
     "rating": null,
     "ratingCount": 0
@@ -393,7 +393,7 @@
     "id": "revolution-laundry",
     "name": "Revolution Laundry",
     "category": "Laundry",
-    "distance": 0.0,
+    "distance": 0,
     "walkMinutes": 0,
     "details": "1 mile20 min walkSelf-service laundry at the Co-op. Open 24 hours.",
     "address": "Heart of England Co-op, Kem Street, Attleborough, Nuneaton CV11 6LH",
@@ -424,7 +424,7 @@
     "details": "Indian restaurant & bar. Tue–Sun 11am–10pm, closed Monday. 07902 759199 · saffrontable.co.",
     "address": "uk23C–23D Abbey Street, Nuneaton CV11 5BT",
     "x": 21.1,
-    "y": 59.0,
+    "y": 59,
     "rating": null,
     "ratingCount": 0
   },
@@ -450,7 +450,7 @@
     "details": "Mexican takeaway & pizzeria. Open every day 5pm–10pm. 024 7635 3100 · casarica.co.",
     "address": "uk107 Abbey Street, Nuneaton CV11 5BX",
     "x": 58.1,
-    "y": 68.0,
+    "y": 68,
     "rating": null,
     "ratingCount": 0
   },
@@ -488,7 +488,7 @@
     "walkMinutes": 2,
     "details": "Kebabs. Mon–Thu 11:30am–1am, Fri–Sat 11:30am–2:15am, Sun 12pm–1am.",
     "address": "024 7767 3343Unit 2, 60 Queens Road, Nuneaton CV11 5JZ",
-    "x": 29.0,
+    "x": 29,
     "y": 19.9,
     "rating": null,
     "ratingCount": 0
@@ -567,7 +567,7 @@
     "details": "Coffee shop. Mon–Fri 9am–4pm, Sat 8am–4pm, Sun 10am–3pm.",
     "address": "124 Abbey Street, Nuneaton CV11 5BZ",
     "x": 65.7,
-    "y": 37.0,
+    "y": 37,
     "rating": null,
     "ratingCount": 0
   },
@@ -592,7 +592,7 @@
     "walkMinutes": 3,
     "details": "Mexican. Mon–Sat 11am–10pm, Sun 11am–9pm. planburrito.co.",
     "address": "uk1 Queens Road, Nuneaton CV11 5JL",
-    "x": 50.0,
+    "x": 50,
     "y": 72.6,
     "rating": null,
     "ratingCount": 0
@@ -619,7 +619,7 @@
     "details": "Sandwiches. Mon–Sat 8am–9pm, Sun 8am–8pm. restaurants.subway.",
     "address": "com80 Queens Road, Nuneaton CV11 5LE",
     "x": 53.4,
-    "y": 23.0,
+    "y": 23,
     "rating": null,
     "ratingCount": 0
   },
@@ -644,8 +644,8 @@
     "walkMinutes": 3,
     "details": "Coffee shop. Mon–Sat 7:30am–5:30pm, Sun 9am–4pm.",
     "address": "2 Queens Road, Nuneaton CV11 5JW",
-    "x": 73.0,
-    "y": 35.0,
+    "x": 73,
+    "y": 35,
     "rating": null,
     "ratingCount": 0
   },
@@ -665,15 +665,18 @@
   {
     "id": "the-jail-house-pub-bistro",
     "name": "The Jail House Pub & Bistro",
-    "category": "Food",
+    "category": "Pubs & bars",
     "distance": 0.2,
     "walkMinutes": 4,
-    "details": "Mon - Thur 11am - 8pm Fri - Sat 11am - 10pm Sun 11am - 6pm Food Served Daily Mon - Thurs 11am - 8pm Fri - Sat 11am - 10pm Sunday 11am - 6pm 12pm - 5pm (Carvery) 2 course £16.95 3 course £19.",
-    "address": "95 02476209305Chapel St, Nuneaton CV11 5QH",
+    "details": "Newly opened pub & bistro. Open Mon–Thu 11am–8pm, Fri–Sat 11am–10pm, Sun 11am–6pm. Food served daily; Sunday carvery 12pm–5pm (2 courses £16.95, 3 courses £19). Tel 024 7620 9305.",
+    "address": "95 Chapel St, Nuneaton CV11 5QH",
     "x": 9.7,
     "y": 68.4,
     "rating": null,
-    "ratingCount": 0
+    "ratingCount": 0,
+    "launchSpotlight": true,
+    "spotlightEndsAt": "2026-11-24T23:59:59.000Z",
+    "spotlightNote": "New local opening — featured for its first three weeks."
   },
   {
     "id": "greggs-abbeygate",
@@ -710,7 +713,7 @@
     "details": "Fish & chips. Mon–Sat 11am–10pm, Sun 4pm–9pm.",
     "address": "22 Harefield Road, Nuneaton CV11 4HH",
     "x": 19.8,
-    "y": 30.0,
+    "y": 30,
     "rating": null,
     "ratingCount": 0
   },
@@ -741,7 +744,7 @@
     "ratingCount": 0,
     "launchSpotlight": true,
     "spotlightEndsAt": "2026-11-24T23:59:59.000Z",
-    "spotlightNote": "New local opening — opening details supplied by the area guide."
+    "spotlightNote": "New local opening — featured for its first three weeks."
   },
   {
     "id": "spudz-mash-n-dash",
@@ -764,7 +767,7 @@
     "walkMinutes": 4,
     "details": "Café. Mon 8am–5pm, Tue–Sat 8am–5:30pm, Sun 8am–4pm.",
     "address": "20 Newdegate Street, Nuneaton CV11 4EU",
-    "x": 15.0,
+    "x": 15,
     "y": 49.7,
     "rating": null,
     "ratingCount": 0
@@ -778,7 +781,7 @@
     "details": "Café & bar. Mon–Sat 9am–5pm, Sun 9am–4pm.",
     "address": "Market Place, Nuneaton CV11 4EA",
     "x": 9,
-    "y": 45.0,
+    "y": 45,
     "rating": null,
     "ratingCount": 0
   },
@@ -842,7 +845,7 @@
     "walkMinutes": 5,
     "details": "Pizza. Open every day 4pm–2am. 024 7638 4008 · flamesgrillnuneaton.co.",
     "address": "uk35 Harefield Road, Nuneaton CV11 4HB",
-    "x": 31.0,
+    "x": 31,
     "y": 27.3,
     "rating": null,
     "ratingCount": 0
@@ -856,7 +859,7 @@
     "details": "Fried chicken. Mon–Sat 12pm–10pm, Sun 2pm–10pm.",
     "address": "024 7634 6666Abbey Green, Nuneaton CV11 5BD",
     "x": 76.1,
-    "y": 46.0,
+    "y": 46,
     "rating": null,
     "ratingCount": 0
   },
@@ -946,7 +949,7 @@
     "walkMinutes": 7,
     "details": "Fish & chips. Mon–Sat 11am–10pm, closed Sunday.",
     "address": "024 7676 55359 Midland Road, Nuneaton CV11 5DU",
-    "x": 88.0,
+    "x": 88,
     "y": 59.9,
     "rating": null,
     "ratingCount": 0
@@ -985,7 +988,7 @@
     "walkMinutes": 13,
     "details": "Bar & grill. Sun–Thu 12pm–10pm, Fri 12pm–midnight. 024 7590 0007 · baileysbarandgrill.",
     "address": "com121 Attleborough Road, Nuneaton CV11 4JQ",
-    "x": 67.0,
+    "x": 67,
     "y": 58.6,
     "rating": null,
     "ratingCount": 0
@@ -1024,7 +1027,7 @@
     "walkMinutes": 19,
     "details": "BBQ food. Wed–Sat lunch 10am–2pm, dinner 5pm–8pm (bookings only).",
     "address": "07930 107140Bull Street, Nuneaton CV11 4JX",
-    "x": 76.0,
+    "x": 76,
     "y": 66.7,
     "rating": null,
     "ratingCount": 0
@@ -1038,7 +1041,7 @@
     "details": "Dine-in restaurant. Mon–Sat 9am–9pm, Sun 9am–8pm. 024 7634 1013 · greenekinginns.co.",
     "address": "ukHigham Lane, Nuneaton CV11 6LG",
     "x": 53.4,
-    "y": 79.0,
+    "y": 79,
     "rating": null,
     "ratingCount": 0
   },
@@ -1076,7 +1079,7 @@
     "walkMinutes": 90,
     "details": "Steakhouse. Open every day 12pm–11pm. 01455 615408 · millerandcarter.co.",
     "address": "ukWatling Street, Burbage, Hinckley LE10 2JQ",
-    "x": 29.0,
+    "x": 29,
     "y": 19.9,
     "rating": null,
     "ratingCount": 0
@@ -1141,7 +1144,7 @@
     "walkMinutes": 16,
     "details": "Pub. Mon–Thu 12pm–9pm, Fri–Sat 12pm–7pm, Sun 12pm–5pm. 024 7638 3231 · attleborougharmspub.co.",
     "address": "ukHighfield Road, Attleborough, Nuneaton CV11 4PL",
-    "x": 27.0,
+    "x": 27,
     "y": 37.1,
     "rating": null,
     "ratingCount": 0
@@ -1193,7 +1196,7 @@
     "walkMinutes": 8,
     "details": "Town park on the River Anker, home to the town museum, where you can find out about Nuneaton's history, including author George Eliot. Open 24 hours.",
     "address": "Coton Road, Nuneaton CV11 5TU",
-    "x": 62.0,
+    "x": 62,
     "y": 42.3,
     "rating": null,
     "ratingCount": 0
@@ -1267,12 +1270,12 @@
     "id": "lumberjaxs",
     "name": "Lumberjaxs",
     "category": "Attractions & days out",
-    "distance": 0.0,
+    "distance": 0,
     "walkMinutes": 0,
     "details": "1 mile19 min walkAxe throwing. Mon 2pm–5:30pm, Thu 2pm–7:30pm, Fri 2pm–9:30pm, Sat 12pm–8:30pm, Sun 12pm–3:30pm, closed Tue–Wed. 01827 767798 · lumberjaxs.co.ukUnit 2, Davis Court, Hammond Close, Attleborough Fields Ind.",
     "address": "Estate, Nuneaton CV11 6RY",
     "x": 91,
-    "y": 35.0,
+    "y": 35,
     "rating": null,
     "ratingCount": 0
   },
@@ -1324,7 +1327,7 @@
     "details": "Kids' play centre. Mon–Sat 9:20am–6:10pm, Sun 9:20am–3:40pm.",
     "address": "024 7640 0502The Bermuda Park, St David's Way, Nuneaton CV10 7SD",
     "x": 69.9,
-    "y": 63.0,
+    "y": 63,
     "rating": null,
     "ratingCount": 0
   },
@@ -1349,7 +1352,7 @@
     "walkMinutes": 38,
     "details": "Cinema. odeon.co.",
     "address": "ukThe Bermuda Park, St David's Way, Nuneaton CV10 7SD",
-    "x": 47.0,
+    "x": 47,
     "y": 64.5,
     "rating": null,
     "ratingCount": 0
@@ -1375,7 +1378,7 @@
     "walkMinutes": 62,
     "details": "Squash courts. Open 7am–midnight. 01455 616345 · hinckleysquash.",
     "address": "comMaple Drive (off Coventry Road), Hinckley LE10 3BE",
-    "x": 15.0,
+    "x": 15,
     "y": 71.4,
     "rating": null,
     "ratingCount": 0
@@ -1449,7 +1452,7 @@
     "id": "snowdome",
     "name": "Snowdome",
     "category": "Attractions & days out",
-    "distance": 12.0,
+    "distance": 12,
     "walkMinutes": 240,
     "details": "Indoor ski slope. Open every day 7am–11pm. 01827 308420 · snowdome.co.",
     "address": "ukLeisure Island, River Drive, Tamworth B79 7ND",
@@ -1462,12 +1465,12 @@
     "id": "warwick-castle",
     "name": "Warwick Castle",
     "category": "Attractions & days out",
-    "distance": 18.0,
+    "distance": 18,
     "walkMinutes": 360,
     "details": "Castle. Open every day 10am–4pm. 01926 406660 · warwick-castle.",
     "address": "comCastle Lane, Warwick CV34 4QU",
     "x": 54.8,
-    "y": 37.0,
+    "y": 37,
     "rating": null,
     "ratingCount": 0
   },
@@ -1475,7 +1478,7 @@
     "id": "teamsport-indoor-go-karting",
     "name": "TeamSport Indoor Go Karting",
     "category": "Attractions & days out",
-    "distance": 23.0,
+    "distance": 23,
     "walkMinutes": 460,
     "details": "Indoor go-kart track. Open every day 9am–11pm. team-sport.co.",
     "address": "uk7–10 Park Lane, Park Lane Industrial Estate, Oldbury B69 4JX",
@@ -1505,8 +1508,8 @@
     "walkMinutes": 2,
     "details": "Off-licence. Mon–Sat 8am–9pm, Sun 9am–9pm.",
     "address": "118 Abbey Street, Nuneaton CV11 5BX",
-    "x": 72.0,
-    "y": 51.0,
+    "x": 72,
+    "y": 51,
     "rating": null,
     "ratingCount": 0
   },
@@ -1597,7 +1600,7 @@
     "details": "Every Wednesday & Saturday, 8am–4pm, across the town centre — fresh fish, flowers, baked goods, clothing, footwear, fruit & veg, gifts and street food.",
     "address": "Town centre, Nuneaton",
     "x": 77.3,
-    "y": 70.0,
+    "y": 70,
     "rating": null,
     "ratingCount": 0
   },
@@ -1691,21 +1694,5 @@
     "y": 46.6,
     "rating": null,
     "ratingCount": 0
-  },
-  {
-    "id": "the-jailhouse",
-    "name": "The Jailhouse",
-    "category": "Pubs & bars",
-    "distance": 0.2,
-    "walkMinutes": 4,
-    "details": "New local pub opening. Opening hours and address details to be confirmed by the venue.",
-    "address": "Nuneaton town centre",
-    "x": 54.2,
-    "y": 47.8,
-    "rating": null,
-    "ratingCount": 0,
-    "launchSpotlight": true,
-    "spotlightEndsAt": "2026-11-24T23:59:59.000Z",
-    "spotlightNote": "New local opening — venue details awaiting confirmation."
   }
 ]
