@@ -70,7 +70,32 @@ export type Enquiry = {
   openingDate?: string;
   website?: string;
   message: string;
+  comingSoonFor?: string;
   createdAt: string;
+};
+
+export type ResolvedPlace = {
+  name: string;
+  district?: string;
+  county?: string;
+  postcode?: string;
+  lat: number;
+  lng: number;
+};
+
+export type WaitlistSource = "signup" | "business-signup" | "enquiry" | "explore";
+
+// Someone who asked for Near to me somewhere it isn't live yet.
+export type WaitlistEntry = {
+  id: string;
+  email: string;
+  name?: string;
+  location: string;
+  place?: ResolvedPlace;
+  source: WaitlistSource;
+  role?: "explorer" | "business";
+  createdAt: string;
+  notifiedAt?: string;
 };
 
 export type AreaContent = {

@@ -56,6 +56,7 @@ export default function AccountExperience() {
       }
 
       let business: Record<string, string> | undefined;
+      let comingSoon = "";
       if (role === "business") {
         business = {
           businessName: text("businessName"),
@@ -86,13 +87,33 @@ export default function AccountExperience() {
               website: business.website,
               message: `${business.description}\n\nContact role: ${business.contactRole}`,
               contactTime: form.get("contactTime"),
+              fromSignup: true,
             }),
           });
+          const result = await response.json().catch(() => ({})) as { error?: string; comingSoon?: string };
           if (!response.ok) {
-            const result = await response.json().catch(() => ({})) as { error?: string };
             setNotice(`We couldn't send your listing: ${result.error ?? "please try again."}`);
             return;
           }
+          comingSoon = result.comingSoon ?? "";
+        } finally {
+          setSending(false);
+        }
+      }
+
+      if (role === "explorer") {
+        // Tells admins where people want Near to me next; the account itself still saves if this fails.
+        setSending(true);
+        try {
+          const response = await fetch("/api/waitlist", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ email, name: text("name"), location: text("area"), source: "signup", role: "explorer", contactTime: form.get("contactTime") }),
+          });
+          const result = await response.json().catch(() => ({})) as { status?: string; placeName?: string };
+          if (response.ok && result.status !== "active") comingSoon = result.placeName ?? text("area");
+        } catch (error) {
+          console.error("Could not check whether Near to me covers this area yet.", error);
         } finally {
           setSending(false);
         }
@@ -111,7 +132,8 @@ export default function AccountExperience() {
       window.localStorage.setItem("near-to-me:profile", JSON.stringify(profile));
       window.localStorage.setItem("near-to-me:session", JSON.stringify({ email, signedInAt: new Date().toISOString() }));
       const firstName = profile.name.split(" ")[0];
-      if (role === "explorer") setNotice(`You're in, ${firstName}! Your neighbour profile is ready.`);
+      if (comingSoon) setNotice(`You're in, ${firstName}! Near to me isn't in ${comingSoon} just yet, but it's coming soon. We'll email you at ${email} as soon as it's available there.`);
+      else if (role === "explorer") setNotice(`You're in, ${firstName}! Your neighbour profile is ready.`);
       else setNotice(`You're in, ${firstName}! We've sent ${business?.businessName} to the guide team. Once they've checked the details it'll appear nearby${business?.openingDate ? ", with a just-opened spotlight if you're new" : ""}.`);
     } catch (error) {
       console.error("Could not save your local preview profile.", error);

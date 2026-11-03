@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { adminCookieName, currentAdmin } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/admin-request";
 import { defaultAreaId, getArea } from "@/lib/areas";
 import { contentStore } from "@/lib/content-store";
-import { isSameOrigin, jsonError, readJson } from "@/lib/http";
+import { jsonError, readJson } from "@/lib/http";
 import type { AreaContent } from "@/lib/types";
 import { parseEnquiryStatus, parseEvent, parsePlace, parseUpdate, type Parsed } from "@/lib/validation";
 
@@ -13,12 +13,11 @@ const parsers: Record<Editable, (input: unknown) => Parsed<{ id: string }>> = { 
 const deletable: (keyof AreaContent)[] = ["places", "events", "updates", "reviews", "enquiries"];
 
 function guard(request: NextRequest, mutating: boolean): { error: NextResponse } | { admin: string; areaId: string } {
-  const admin = currentAdmin(request.cookies.get(adminCookieName)?.value);
-  if (!admin) return { error: jsonError("Sign in as an admin first.", 401) };
-  if (mutating && !isSameOrigin(request)) return { error: jsonError("Admin changes must come from this site.", 403) };
+  const access = requireAdmin(request, mutating);
+  if ("error" in access) return access;
   const areaId = request.nextUrl.searchParams.get("area") ?? defaultAreaId;
   if (!getArea(areaId)) return { error: jsonError("Unknown area.", 404) };
-  return { admin, areaId };
+  return { admin: access.admin, areaId };
 }
 
 export async function GET(request: NextRequest) {

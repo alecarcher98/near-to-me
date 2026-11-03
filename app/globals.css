@@ -602,3 +602,21 @@ body { background: var(--page); }
 .admin-checks { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 0; }.admin-checks label,.admin-check-inline { display: inline-flex; align-items: center; gap: 6px; color: #3e5a35; font-size: 9px; font-weight: 700; }.admin-check-inline { align-self: center; }
 @media (max-width: 900px) { .needs-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.essentials-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.business-contact { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .needs-grid,.essentials-grid,.form-three { grid-template-columns: 1fr; }.location-bar-postcode { flex: 1 1 100%; }.location-bar-postcode input { flex: 1; width: auto; }.need-tile small { white-space: normal; } }
+
+/* Coming-soon waitlist */
+.coming-soon { display: flex; flex-basis: 100%; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; border: 1px solid #d9e2b4; border-left: 3px solid #98b43e; background: #fbfbe9; }
+.coming-soon-icon { display: grid; place-items: center; width: 32px; height: 32px; color: #183728; background: var(--acid); }
+.coming-soon-copy { display: grid; flex: 1 1 260px; gap: 3px; }.coming-soon-copy b { color: #1b3829; font-family: var(--display); font-size: 13px; }.coming-soon-copy span { color: #6f7a6c; font-size: 9px; line-height: 1.5; }
+.coming-soon-form { display: flex; flex-wrap: wrap; gap: 6px; }.coming-soon-form input { width: 170px; height: 34px; padding: 0 10px; border: 1px solid #dedfd3; outline: 0; background: #fff; font-size: 9px; }.coming-soon-form input:focus { border-color: #839f56; }
+.coming-soon-form button { height: 34px; padding: 0 12px; border: 0; color: #183728; background: var(--acid); font-size: 9px; font-weight: 800; }
+.admin-pill-soon { color: #5b4211; background: #f8e7b8; }
+.admin-waitlist-group { display: grid; gap: 0; border: 1px solid #e0e3d8; background: #fffef9; }
+.admin-waitlist-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-bottom: 1px solid #e0e3d8; background: #f6f7ed; }
+.admin-waitlist-heading > div:first-child { display: grid; gap: 3px; }.admin-waitlist-heading b { display: inline-flex; align-items: center; gap: 5px; color: #1b3829; font-size: 13px; }.admin-waitlist-heading small { color: #7d867b; font-size: 8px; }
+.admin-waitlist-heading .outline-button { display: inline-flex; align-items: center; gap: 5px; }
+.admin-waitlist-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 2px 10px; padding: 9px 12px; border-top: 1px solid #eceee5; }
+.admin-waitlist-row > span:first-child { color: #2f4538; font-size: 10px; }.admin-waitlist-row a { color: #476c48; }
+.admin-waitlist-row small { grid-column: 1; color: #858d81; font-size: 8px; }
+.admin-waitlist-row .admin-row-actions { grid-column: 2; grid-row: 1 / span 2; }
+.admin-waitlist-row.emailed { opacity: .6; }
+@media (max-width: 600px) { .coming-soon-form,.coming-soon-form input { flex: 1 1 100%; width: auto; }.admin-waitlist-row { grid-template-columns: 1fr; }.admin-waitlist-row .admin-row-actions { grid-column: 1; grid-row: auto; } }

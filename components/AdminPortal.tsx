@@ -1,25 +1,49 @@
 "use client";
 
-import { ArrowLeft, CalendarDays, Inbox, LogOut, MapPin, Megaphone, MessageCircle, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, Copy, Download, Globe, Inbox, LogOut, Mail, MapPin, Megaphone, MessageCircle, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { areas, defaultAreaId } from "@/lib/areas";
 import { weekdays } from "@/lib/events";
+import { placeLabel } from "@/lib/geocode";
 import { isSponsored, isSpotlight, placeCategories } from "@/lib/places";
-import type { AreaContent, Enquiry, LocalEvent, Place, Update } from "@/lib/types";
+import type { AreaContent, Enquiry, LocalEvent, Place, Update, WaitlistEntry } from "@/lib/types";
 
-type Section = "enquiries" | "places" | "events" | "updates" | "reviews";
+type Section = "enquiries" | "waitlist" | "places" | "events" | "updates" | "reviews";
 type Draft<T> = Partial<T> & { isNew?: boolean };
 
 const area = areas[defaultAreaId];
 const sections: { id: Section; label: string; icon: typeof Inbox }[] = [
   { id: "enquiries", label: "Business enquiries", icon: Inbox },
+  { id: "waitlist", label: "Coming soon", icon: Globe },
   { id: "places", label: "Places", icon: MapPin },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "updates", label: "Noticeboard", icon: Megaphone },
   { id: "reviews", label: "Reviews", icon: MessageCircle },
 ];
 const enquiryLabels: Record<Enquiry["kind"], string> = { sponsorship: "Sponsorship", listing: "New listing", reviews: "Reviews", other: "Other" };
+const sourceLabels: Record<WaitlistEntry["source"], string> = { signup: "Signed up", "business-signup": "Business sign-up", enquiry: "Business enquiry", explore: "Explore page" };
+
+function waitlistLocation(entry: WaitlistEntry) {
+  return entry.place ? placeLabel(entry.place) : entry.location;
+}
+
+function comingSoonEmail(place: string) {
+  return {
+    subject: `Near to me is coming to ${place}`,
+    body: `Hi,\n\nThanks for signing up to Near to me. We're not live in ${place} just yet, but it's coming soon, and you'll be one of the first to know when it's available there.\n\nWe'll email you again as soon as your local guide launches.\n\nThe Near to me team`,
+  };
+}
+
+function downloadCsv(entries: WaitlistEntry[]) {
+  const cell = (value: string | undefined) => `"${(value ?? "").replace(/"/g, '""')}"`;
+  const rows = [["Location", "Name", "Email", "Typed location", "Source", "Signed up", "Emailed"], ...entries.map((entry) => [waitlistLocation(entry), entry.name, entry.email, entry.location, sourceLabels[entry.source], entry.createdAt.slice(0, 10), entry.notifiedAt?.slice(0, 10)])];
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([rows.map((row) => row.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
+  link.download = `near-to-me-coming-soon-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
 
 function dateInput(value?: string) {
   return value ? value.slice(0, 10) : "";
@@ -41,6 +65,7 @@ async function api(method: string, url: string, body?: unknown) {
 export default function AdminPortal() {
   const [session, setSession] = useState<{ enabled: boolean; admin: string | null } | null>(null);
   const [content, setContent] = useState<AreaContent | null>(null);
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [section, setSection] = useState<Section>("enquiries");
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const [placeDraft, setPlaceDraft] = useState<Draft<Place> | null>(null);
@@ -50,7 +75,9 @@ export default function AdminPortal() {
 
   const load = useCallback(async () => {
     try {
-      setContent(await api("GET", `/api/admin/content?area=${area.id}`) as AreaContent);
+      const [areaContent, waitlistResult] = await Promise.all([api("GET", `/api/admin/content?area=${area.id}`), api("GET", "/api/admin/waitlist")]);
+      setContent(areaContent as AreaContent);
+      setWaitlist((waitlistResult as { entries: WaitlistEntry[] }).entries);
     } catch (error) {
       setMessage({ text: error instanceof Error ? error.message : "Could not load content.", error: true });
     }
@@ -142,6 +169,17 @@ export default function AdminPortal() {
   }
 
   const newEnquiries = content?.enquiries.filter((enquiry) => enquiry.status === "new").length ?? 0;
+  const waitingToHear = waitlist.filter((entry) => !entry.notifiedAt).length;
+  const waitlistGroups = Object.entries(waitlist.reduce<Record<string, WaitlistEntry[]>>((groups, entry) => {
+    (groups[waitlistLocation(entry)] ??= []).push(entry);
+    return groups;
+  }, {})).sort((a, b) => b[1].length - a[1].length);
+
+  function copyText(text: string, success: string) {
+    void navigator.clipboard.writeText(text).then(() => setMessage({ text: success })).catch(() => setMessage({ text: "Copy failed — select and copy it manually.", error: true }));
+  }
+
+  const markEmailed = (ids: string[], notified = true) => run(() => api("PATCH", "/api/admin/waitlist", { ids, notified }), notified ? "Marked as emailed." : "Marked as not emailed yet.");
 
   return (
     <main className="admin-shell">
@@ -151,7 +189,7 @@ export default function AdminPortal() {
       </header>
       <nav className="admin-tabs">
         {sections.map(({ id, label, icon: Icon }) => (
-          <button key={id} className={section === id ? "admin-tab active" : "admin-tab"} onClick={() => setSection(id)}><Icon size={15} /> {label}{id === "enquiries" && newEnquiries > 0 && <span className="nav-count">{newEnquiries}</span>}</button>
+          <button key={id} className={section === id ? "admin-tab active" : "admin-tab"} onClick={() => setSection(id)}><Icon size={15} /> {label}{id === "enquiries" && newEnquiries > 0 && <span className="nav-count">{newEnquiries}</span>}{id === "waitlist" && waitingToHear > 0 && <span className="nav-count">{waitingToHear}</span>}</button>
         ))}
       </nav>
       {message && <p className={message.error ? "admin-message error" : "admin-message"} role="status">{message.text}</p>}
@@ -167,6 +205,7 @@ export default function AdminPortal() {
                   <div className="admin-row-main">
                     <span className="admin-pill">{enquiryLabels[enquiry.kind]}</span>
                     <b>{enquiry.businessName}</b>
+                    {enquiry.comingSoonFor && <span className="admin-pill admin-pill-soon">Outside live areas · {enquiry.comingSoonFor}</span>}
                     <small>{enquiry.contactName} · <a href={`mailto:${enquiry.email}`}>{enquiry.email}</a>{enquiry.phone && ` · ${enquiry.phone}`} · {new Date(enquiry.createdAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>
                     {(enquiry.businessType || enquiry.address || enquiry.openingDate || enquiry.website) && <small>{[enquiry.businessType, enquiry.address, enquiry.openingDate && `Opening ${enquiry.openingDate}`, enquiry.website].filter(Boolean).join(" · ")}</small>}
                     <p>{enquiry.message}</p>
@@ -178,6 +217,43 @@ export default function AdminPortal() {
                   </div>
                 </article>
               ))}
+            </section>
+          )}
+
+          {section === "waitlist" && (
+            <section className="admin-panel">
+              <div className="admin-panel-heading"><h2>Coming soon <small>{waitlist.length} people · {waitlistGroups.length} locations</small></h2>{waitlist.length > 0 && <button className="outline-button" onClick={() => downloadCsv(waitlist)}><Download size={14} /> Download CSV</button>}</div>
+              <p className="admin-hint">People who signed up, enquired or searched from somewhere {area.name} doesn’t cover yet. They’ve been told it’s coming soon. Email them, then mark them as emailed. Locations with the most people are listed first.</p>
+              {waitlist.length === 0 && <p className="admin-empty">Nobody outside {area.name} has signed up yet.</p>}
+              {waitlistGroups.map(([location, entries]) => {
+                const pending = entries.filter((entry) => !entry.notifiedAt);
+                const email = comingSoonEmail(location.split(",")[0]);
+                return (
+                  <article className="admin-waitlist-group" key={location}>
+                    <div className="admin-waitlist-heading">
+                      <div><b><MapPin size={14} /> {location}</b><small>{entries.length} {entries.length === 1 ? "person" : "people"} · {pending.length} not emailed yet</small></div>
+                      {pending.length > 0 && (
+                        <div className="admin-row-actions">
+                          <button className="outline-button" onClick={() => copyText(pending.map((entry) => entry.email).join(", "), `Copied ${pending.length} email address${pending.length === 1 ? "" : "es"}.`)}><Copy size={14} /> Copy emails</button>
+                          <a className="outline-button" href={`mailto:?bcc=${encodeURIComponent(pending.map((entry) => entry.email).join(","))}&subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`}><Mail size={14} /> Email them</a>
+                          <button className="outline-button" onClick={() => copyText(`${email.subject}\n\n${email.body}`, "Email message copied.")}><Copy size={14} /> Copy message</button>
+                          <button className="primary-button" onClick={() => void markEmailed(pending.map((entry) => entry.id))}>Mark all emailed</button>
+                        </div>
+                      )}
+                    </div>
+                    {entries.map((entry) => (
+                      <div className={entry.notifiedAt ? "admin-waitlist-row emailed" : "admin-waitlist-row"} key={entry.id}>
+                        <span><b>{entry.name || "—"}</b> <a href={`mailto:${entry.email}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`}>{entry.email}</a></span>
+                        <small>{sourceLabels[entry.source]}{entry.role === "business" ? " · business" : ""} · typed “{entry.location}” · {new Date(entry.createdAt).toLocaleDateString("en-GB")}{entry.notifiedAt && ` · emailed ${new Date(entry.notifiedAt).toLocaleDateString("en-GB")}`}</small>
+                        <span className="admin-row-actions">
+                          <button className="outline-button" onClick={() => void markEmailed([entry.id], !entry.notifiedAt)}>{entry.notifiedAt ? "Undo emailed" : "Mark emailed"}</button>
+                          <button className="icon-outline" onClick={() => { if (window.confirm(`Remove ${entry.email} from the coming-soon list?`)) void run(() => api("DELETE", `/api/admin/waitlist?id=${encodeURIComponent(entry.id)}`), "Removed."); }} aria-label={`Remove ${entry.email}`}><Trash2 size={15} /></button>
+                        </span>
+                      </div>
+                    ))}
+                  </article>
+                );
+              })}
             </section>
           )}
 

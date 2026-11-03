@@ -35,6 +35,10 @@ Open [http://localhost:3000](http://localhost:3000). The admin portal is at [/ad
 - **Reviews:** remove abusive or fake reviews. Reviews go live as soon as they're posted.
 - **Business enquiries:** sponsorship, listing and review requests from the *For businesses* page and business sign-ups. Admins can change each enquiry's status, and *Create listing* turns a listing request into a place.
 
+- **Coming soon:** people outside every live area. This includes visitors who sign up with another town or postcode, businesses that enquire from elsewhere, and explore-page visitors whose location isn't covered and who leave their email. They're told the guide is coming soon to their location. Admins see them grouped by location, busiest first, with options to copy emails, open a pre-written "coming soon" email (BCC), download a CSV and mark people as emailed.
+
+**Which places count as covered.** An area lists the council districts it covers (Nuneaton covers *Nuneaton and Bedworth*, so Bedworth is in but Hinckley isn't). Locations are looked up with postcodes.io: a postcode, a town name, or the nearest postcode to a shared GPS position. Business addresses that can't be placed aren't added to the coming-soon list.
+
 Admin accounts come from `ADMIN_USERS` (see `.env.example`). Sessions are signed, HTTP-only, same-site cookies that last 12 hours. Admin changes and public form posts are rejected unless they come from the site itself.
 
 ## Data and areas

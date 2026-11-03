@@ -136,6 +136,7 @@ export default function NearToMeApp() {
   const [listLimit, setListLimit] = useState(12);
   const [accountName, setAccountName] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
+  const [comingSoon, setComingSoon] = useState<{ placeName: string; joined: boolean } | null>(null);
 
   useEffect(() => {
     setOrigin(readLocal(originKey, townCentre));
@@ -165,6 +166,30 @@ export default function NearToMeApp() {
   }, [toast]);
 
   useEffect(() => setListLimit(12), [selectedCategory, query, radius, origin]);
+
+  // Outside every live area? Offer a coming-soon sign-up for that location.
+  useEffect(() => {
+    setComingSoon(null);
+    if (origin.source === "centre") return;
+    const params = origin.source === "postcode" ? `location=${encodeURIComponent(origin.label)}` : `lat=${origin.lat}&lng=${origin.lng}`;
+    let cancelled = false;
+    fetch(`/api/coverage?${params}`)
+      .then((response) => response.ok ? response.json() as Promise<{ status: string; placeName: string }> : null)
+      .then((result) => { if (!cancelled && result && result.status === "coming-soon") setComingSoon({ placeName: result.placeName, joined: false }); })
+      .catch((error: unknown) => console.error("Could not check whether this location is covered yet.", error));
+    return () => { cancelled = true; };
+  }, [origin]);
+
+  async function joinWaitlist(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    try {
+      await postJson("/api/waitlist", { email: form.get("email"), name: form.get("name"), source: "explore", contactTime: form.get("contactTime"), ...(origin.source === "postcode" ? { location: origin.label } : { lat: origin.lat, lng: origin.lng }) });
+      setComingSoon((current) => current && { ...current, joined: true });
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "We couldn't save that. Please try again.");
+    }
+  }
 
   const nearby = useMemo(() => withDistance(content.places, origin), [content.places, origin]);
   const inRange = useMemo(() => nearby.filter((place) => place.miles <= radius), [nearby, radius]);
@@ -364,6 +389,13 @@ export default function NearToMeApp() {
                 <label className="location-bar-radius">WITHIN<select value={radius} onChange={(event) => setRadius(Number(event.target.value))}>{radiusOptions.map((option) => <option key={option} value={option}>{option} mi</option>)}</select></label>
                 {origin.source !== "centre" && <button className="location-bar-reset" onClick={() => setOrigin(townCentre)}>Use town centre</button>}
                 {locationNotice && <p className="location-bar-notice" role="status">{locationNotice}</p>}
+                {comingSoon && (
+                  <div className="coming-soon" role="status">
+                    <span className="coming-soon-icon"><Sparkles size={16} /></span>
+                    <div className="coming-soon-copy"><b>Near to me is coming soon to {comingSoon.placeName}.</b><span>{comingSoon.joined ? "Thanks! We’ll email you as soon as it’s available there." : `We’re live in ${area.name} for now. Leave your email and we’ll tell you when your area launches.`}</span></div>
+                    {!comingSoon.joined && <form className="coming-soon-form" onSubmit={joinWaitlist}><input name="name" placeholder="Your name (optional)" maxLength={80} autoComplete="name" aria-label="Your name" /><input name="email" type="email" required placeholder="you@example.com" maxLength={160} autoComplete="email" aria-label="Email address" /><input className="form-trap" name="contactTime" tabIndex={-1} autoComplete="off" aria-hidden="true" /><button type="submit">Tell me when it’s here</button></form>}
+                  </div>
+                )}
                 <p className="location-bar-privacy"><ShieldCheck size={12} /> Your location stays on this device. Postcodes are looked up with postcodes.io.</p>
               </section>
 
@@ -587,7 +619,7 @@ function SavedCard({ place, onRemove, onSelect }: { place: NearbyPlace; onRemove
 function BusinessContact({ onDone }: { onDone: (message: string) => void }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState<{ comingSoon?: string } | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -595,9 +627,9 @@ function BusinessContact({ onDone }: { onDone: (message: string) => void }) {
     setSending(true);
     setError("");
     try {
-      await postJson("/api/enquiries", { area: area.id, ...Object.fromEntries(new FormData(form)) });
+      const result = await postJson("/api/enquiries", { area: area.id, ...Object.fromEntries(new FormData(form)) }) as { comingSoon?: string };
       form.reset();
-      setSent(true);
+      setSent({ comingSoon: result.comingSoon });
       onDone("Thanks — the guide team will be in touch.");
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "We couldn't send that. Please try again.");
@@ -618,7 +650,7 @@ function BusinessContact({ onDone }: { onDone: (message: string) => void }) {
       <div className="business-contact">
         <div className="business-contact-copy"><h2>Talk to the guide team.</h2><p>No plans or tiers to pick. Tell us what you’d like and we’ll come back to you, usually within two working days.</p><ul><li><Check size={14} /> Listing a new or existing business</li><li><Check size={14} /> Sponsored placement</li><li><Check size={14} /> Reviews, events & offers</li></ul></div>
         {sent ? (
-          <div className="business-contact-sent"><BadgeCheck size={26} /><b>Thanks, we’ve got it.</b><span>The {area.name} guide team will reply by email.</span><button className="outline-button" onClick={() => setSent(false)}>Send another enquiry</button></div>
+          <div className="business-contact-sent"><BadgeCheck size={26} /><b>Thanks, we’ve got it.</b><span>{sent.comingSoon ? `Near to me isn’t in ${sent.comingSoon} just yet, but it’s coming soon. We’ve saved your details and will email you as soon as it’s available there.` : `The ${area.name} guide team will reply by email.`}</span><button className="outline-button" onClick={() => setSent(null)}>Send another enquiry</button></div>
         ) : (
           <form className="business-contact-form" onSubmit={submit}>
             <label className="field-label">WHAT CAN WE HELP WITH?<select name="kind" defaultValue="sponsorship"><option value="sponsorship">Get sponsored / featured higher</option><option value="listing">List my business</option><option value="reviews">Reviews on my listing</option><option value="other">Something else</option></select></label>

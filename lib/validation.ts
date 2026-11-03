@@ -1,6 +1,6 @@
 import { weekdays } from "@/lib/events";
 import { placeCategories } from "@/lib/places";
-import type { Enquiry, EnquiryKind, LocalEvent, Place, Review, Update, UpdateKind } from "@/lib/types";
+import type { Enquiry, EnquiryKind, LocalEvent, Place, Review, Update, UpdateKind, WaitlistEntry, WaitlistSource } from "@/lib/types";
 
 export type Parsed<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -178,5 +178,37 @@ export function parseEnquiryStatus(input: unknown): Parsed<Pick<Enquiry, "id" | 
   return parse(() => {
     const f = fields(input);
     return { id: f.text("id", 120, true), status: f.oneOf("status", ["new", "in-progress", "done"] as const) };
+  });
+}
+
+const interestSources: readonly WaitlistSource[] = ["signup", "business-signup", "explore"];
+
+export type Interest = { email: string; name?: string; location?: string; lat?: number; lng?: number; source: WaitlistSource; role?: WaitlistEntry["role"] };
+
+export function parseInterest(input: unknown): Parsed<Interest> {
+  return parse(() => {
+    const f = fields(input);
+    const email = f.text("email", 160, true).toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new InvalidInput("Enter a valid email address.");
+    const location = f.optionalText("location", 120);
+    const hasPoint = f.record.lat !== undefined && f.record.lat !== null && f.record.lat !== "";
+    if (!location && !hasPoint) throw new InvalidInput("Tell us your town or postcode.");
+    return {
+      email,
+      name: f.optionalText("name", 80),
+      location,
+      ...(hasPoint ? { lat: f.number("lat", -90, 90), lng: f.number("lng", -180, 180) } : {}),
+      source: f.oneOf("source", interestSources, "explore"),
+      role: f.text("role", 20) ? f.oneOf("role", ["explorer", "business"] as const) : undefined,
+    };
+  });
+}
+
+export function parseWaitlistNotified(input: unknown): Parsed<{ ids: string[]; notified: boolean }> {
+  return parse(() => {
+    const f = fields(input);
+    const ids = Array.isArray(f.record.ids) ? f.record.ids.filter((id): id is string => typeof id === "string" && id.length <= 120).slice(0, 1000) : [];
+    if (ids.length === 0) throw new InvalidInput("Choose at least one person.");
+    return { ids, notified: f.record.notified !== false };
   });
 }

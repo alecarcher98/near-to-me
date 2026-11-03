@@ -4,6 +4,7 @@ import { contentStore } from "@/lib/content-store";
 import { isSameOrigin, jsonError, readJson } from "@/lib/http";
 import { clientKey, createRateLimiter } from "@/lib/rate-limit";
 import { parseEnquiry } from "@/lib/validation";
+import { recordInterest, type Coverage } from "@/lib/waitlist";
 
 const allow = createRateLimiter(5, 10 * 60_000);
 
@@ -19,6 +20,14 @@ export async function POST(request: NextRequest) {
 
   const parsed = parseEnquiry(json.body);
   if (!parsed.ok) return jsonError(parsed.error, 400);
-  await contentStore.update(areaId, (content) => { content.enquiries.unshift(parsed.value); });
-  return NextResponse.json({ ok: true }, { status: 201 });
+  const enquiry = parsed.value;
+
+  // Businesses outside every live area also join the coming-soon list for their location.
+  let coverage: Coverage | undefined;
+  if (enquiry.address) {
+    coverage = await recordInterest({ email: enquiry.email, name: enquiry.contactName, location: enquiry.address, source: json.body.fromSignup === true ? "business-signup" : "enquiry", role: "business" }, { saveUnresolved: false });
+    if (coverage.status === "coming-soon") enquiry.comingSoonFor = coverage.placeName;
+  }
+  await contentStore.update(areaId, (content) => { content.enquiries.unshift(enquiry); });
+  return NextResponse.json({ ok: true, ...(enquiry.comingSoonFor ? { comingSoon: enquiry.comingSoonFor } : {}) }, { status: 201 });
 }
