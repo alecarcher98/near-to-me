@@ -6,7 +6,7 @@ Near to me shows people what's good and closest to them: shops, food, gyms, high
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in ADMIN_USERS and ADMIN_SESSION_SECRET
+cp .env.example .env.local   # locally, ADMIN_USERS=Sam:any-password and a 32+ character secret are enough
 npm run dev
 ```
 
@@ -18,6 +18,7 @@ Open [http://localhost:3000](http://localhost:3000). The admin portal is at [/ad
 | `npm test` | Unit and API tests (Vitest) |
 | `npm run typecheck` | TypeScript check |
 | `npm run build` / `npm start` | Production build / server |
+| `npm run admin:hash -- Sam` | Create a hashed `ADMIN_USERS` entry |
 
 ## How it works
 
@@ -39,17 +40,47 @@ Open [http://localhost:3000](http://localhost:3000). The admin portal is at [/ad
 
 **Which places count as covered.** An area lists the council districts it covers (Nuneaton covers *Nuneaton and Bedworth*, so Bedworth is in but Hinckley isn't). Locations are looked up with postcodes.io: a postcode, a town name, or the nearest postcode to a shared GPS position. Business addresses that can't be placed aren't added to the coming-soon list.
 
-Admin accounts come from `ADMIN_USERS` (see `.env.example`). Sessions are signed, HTTP-only, same-site cookies that last 12 hours. Admin changes and public form posts are rejected unless they come from the site itself.
-
 ## Data and areas
 
 - `data/nuneaton-places.json` and `data/nuneaton-events.json` seed the Nuneaton guide. Places carry latitude and longitude from their postcodes. Eight that had no usable postcode were placed by street and are flagged `approximateLocation`.
 - `lib/areas.ts` registers each area. To add an area, add `data/<area>-places.json` and `data/<area>-events.json` and register them there.
-- The first time an area is used, its seed data is copied into `CONTENT_DIR` (default `.data/`, which is git-ignored). After that, admin edits, reviews and enquiries are saved there.
+- The first time an area is used, its seed data becomes the starting copy. After that, admin edits, reviews and enquiries are saved to the database.
 
-## Before going live
+## Storage
 
-- **Storage:** content is saved as one JSON file per area on the server's disk. This works on a single long-running Node server, such as a VPS, Render or Railway with a persistent disk. It **won't persist on serverless hosts** like Vercel. For those, or to run more than one instance, replace `lib/content-store.ts` with a database.
-- **Rate limits:** public forms are rate-limited in memory, per server instance.
-- **Visitor accounts:** `/account` sign-up and sign-in are still a browser-only preview. Business sign-ups do reach admins as enquiries. Real visitor accounts need an authentication service.
+`lib/content-store.ts` picks a backend at start-up:
+
+| Environment | Backend |
+| --- | --- |
+| `UPSTASH_REDIS_REST_URL`/`TOKEN` (or `KV_REST_API_URL`/`TOKEN`) set | **Upstash Redis.** Use this in production. Every document has a version number, and a write only saves if nobody else wrote in between, so simultaneous saves from different servers never overwrite each other. |
+| On Vercel with no database | **Read-only.** The site shows the built-in listings, and every save returns 503 with a clear log message. |
+| Anywhere else | **JSON files** in `CONTENT_DIR` (default `.data/`, git-ignored), for local development or a single server with a persistent disk. |
+
+Rate limits use the same Redis database when it's configured, so limits apply across every server instance.
+
+## Security
+
+- **Admin sign-in:** names and scrypt-hashed passwords come from `ADMIN_USERS`; production refuses plain-text passwords. Sign-in attempts are rate-limited per address and per account name, and unknown names take as long to reject as wrong passwords.
+- **Admin sessions:** HMAC-signed `__Host-` cookies (`Secure`, `HttpOnly`, `SameSite=Strict`) lasting 12 hours. Changing an admin's password, or removing them from `ADMIN_USERS`, signs them out everywhere. Rotating `ADMIN_SESSION_SECRET` signs out every admin.
+- **Cross-site requests:** every write must come from `SITE_URL` (checked against the `Origin` header) and be JSON. Browsers can't send cross-site JSON without a CORS preflight, which the site never grants.
+- **Input:** request bodies are capped at 20 KB while being read. Every field is validated and length-limited on the server. Emails are checked strictly (no characters that could add parameters to a `mailto:` link), and links must be `http(s)`. CSV exports neutralise spreadsheet formulas.
+- **Abuse:** public forms are rate-limited and have a hidden field that only bots fill in. Reviews can be removed by admins.
+- **Headers:** a Content Security Policy (scripts and styles from this site only, connections to this site and postcodes.io, no framing), plus HSTS, `nosniff`, `X-Frame-Options: DENY`, a strict referrer policy and a permissions policy that allows only geolocation.
+- **Errors:** API failures are logged on the server and return generic messages. Admin changes are logged with the admin's name.
+- **Privacy:** fonts are self-hosted, so no Google requests. A visitor's exact position is never stored; coming-soon sign-ups keep only the nearest postcode area. `/admin` and `/api/` are excluded from search engines.
+
+## Going live checklist
+
+1. **Database:** add Upstash Redis (Vercel → Storage → Marketplace → Upstash), or set `UPSTASH_REDIS_REST_URL`/`TOKEN`.
+2. **Admins:** run `npm run admin:hash -- <name>` for each admin, and join the outputs with commas into `ADMIN_USERS`.
+3. **Secrets and settings:** set `ADMIN_SESSION_SECRET` (32+ random characters), `SITE_URL`, `NEXT_PUBLIC_OPERATOR_NAME` and `NEXT_PUBLIC_CONTACT_EMAIL`. Set them before building, because the sitemap and robots file are generated at build time.
+4. **Legal review:** have someone qualified review `/privacy` and `/terms`. They describe what the code does, but they aren't legal advice.
+5. **Deploy and check:** deploy, sign in at `/admin`, and post a test noticeboard update to confirm saving works.
+6. **Optional:** register the domain on the HSTS preload list once HTTPS is settled on every subdomain.
+
+## Known limitations
+
+- **Visitor accounts:** `/account` sign-up and sign-in are a browser-only preview. Sign-in only matches the email saved in that browser; passwords are never stored or sent anywhere. Business sign-ups and out-of-area sign-ups do reach admins. Real visitor accounts need an authentication service.
+- **Reviews:** they're published immediately, and admins remove bad ones afterwards. They aren't held for approval.
 - **Map:** the nearby map is a distance view centred on the visitor (rings at half and full radius), not a street map.
+- **Inline scripts:** the CSP allows inline scripts because Next.js uses them for static pages. Switching every page to dynamic rendering with nonces would remove that allowance.

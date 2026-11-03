@@ -79,8 +79,8 @@ describe("resolveLocation", () => {
     expect(await resolveLocation({ location: "Leicester" })).toMatchObject({ district: "Leicester" });
   });
 
-  it("names a shared position from the nearest postcode but keeps the exact point", async () => {
-    expect(await resolveLocation({ lat: 52.54, lng: -1.37 })).toMatchObject({ name: "Hinckley and Bosworth", lat: 52.54, lng: -1.37 });
+  it("names a shared position from the nearest postcode and stores that, not the exact point", async () => {
+    expect(await resolveLocation({ lat: 52.5412345, lng: -1.3712345 })).toMatchObject({ name: "Hinckley and Bosworth", lat: 52.5384, lng: -1.3738 });
   });
 
   it("falls back to the town when the postcode isn't recognised", async () => {

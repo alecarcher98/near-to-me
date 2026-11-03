@@ -32,8 +32,9 @@ function fromPostcode(result: PostcodeResult | null | undefined): ResolvedPlace 
 export async function resolveLocation(input: { location?: string; lat?: number; lng?: number }): Promise<ResolvedPlace | null> {
   if (input.lat !== undefined && input.lng !== undefined) {
     const nearest = await getJson<PostcodeResult[]>(`${api}/postcodes?lon=${input.lng}&lat=${input.lat}&limit=1&radius=2000`);
-    const place = fromPostcode(nearest?.[0]);
-    return place ? { ...place, lat: input.lat, lng: input.lng } : { name: "Shared location", lat: input.lat, lng: input.lng };
+    // Keep the postcode's position, not the person's exact one, so stored sign-ups never hold someone's precise location.
+    const round = (value: number) => Math.round(value * 100) / 100;
+    return fromPostcode(nearest?.[0]) ?? { name: "Shared location", lat: round(input.lat), lng: round(input.lng) };
   }
 
   const text = input.location?.trim();

@@ -6,6 +6,11 @@ export type Parsed<T> = { ok: true; value: T } | { ok: false; error: string };
 
 class InvalidInput extends Error {}
 
+// Deliberately strict: no characters that could add headers or parameters to a mailto: link.
+export function isEmail(value: string) {
+  return /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i.test(value) && value.length <= 160;
+}
+
 function fields(input: unknown) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new InvalidInput("Expected an object.");
   const record = input as Record<string, unknown>;
@@ -38,13 +43,21 @@ function fields(input: unknown) {
     const value = text(key, 300);
     if (!value) return undefined;
     const url = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+    let parsed: URL;
     try {
-      return new URL(url).toString();
+      parsed = new URL(url);
     } catch {
       throw new InvalidInput(`${key} must be a web address.`);
     }
+    if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname.includes(".")) throw new InvalidInput(`${key} must be a web address.`);
+    return parsed.toString();
   };
-  return { record, text, optionalText, number, flag, date, oneOf, link };
+  const email = (key: string) => {
+    const value = text(key, 160, true).toLowerCase();
+    if (!isEmail(value)) throw new InvalidInput("Enter a valid email address.");
+    return value;
+  };
+  return { record, text, optionalText, number, flag, date, oneOf, link, email };
 }
 
 function parse<T>(build: () => T): Parsed<T> {
@@ -153,8 +166,7 @@ const enquiryKinds: readonly EnquiryKind[] = ["sponsorship", "listing", "reviews
 export function parseEnquiry(input: unknown): Parsed<Enquiry> {
   return parse(() => {
     const f = fields(input);
-    const email = f.text("email", 160, true);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new InvalidInput("Enter a valid email address.");
+    const email = f.email("email");
     const businessName = f.text("businessName", 120, true);
     return {
       id: makeId(businessName),
@@ -188,8 +200,7 @@ export type Interest = { email: string; name?: string; location?: string; lat?: 
 export function parseInterest(input: unknown): Parsed<Interest> {
   return parse(() => {
     const f = fields(input);
-    const email = f.text("email", 160, true).toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new InvalidInput("Enter a valid email address.");
+    const email = f.email("email");
     const location = f.optionalText("location", 120);
     const hasPoint = f.record.lat !== undefined && f.record.lat !== null && f.record.lat !== "";
     if (!location && !hasPoint) throw new InvalidInput("Tell us your town or postcode.");

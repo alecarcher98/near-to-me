@@ -1,15 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { defaultAreaId, getArea } from "@/lib/areas";
 import { contentStore } from "@/lib/content-store";
-import { isSameOrigin, jsonError, readJson } from "@/lib/http";
+import { isSameOrigin, jsonError, readJson, route } from "@/lib/http";
 import { clientKey, createRateLimiter } from "@/lib/rate-limit";
 import { parseReview } from "@/lib/validation";
 
-const allow = createRateLimiter(5, 10 * 60_000);
+const allow = createRateLimiter("reviews", 5, 10 * 60_000);
 
-export async function POST(request: NextRequest) {
+export const POST = route(async (request: NextRequest) => {
   if (!isSameOrigin(request)) return jsonError("Reviews must be sent from this site.", 403);
-  if (!allow(clientKey(request.headers))) return jsonError("Too many reviews from here. Try again in a few minutes.", 429);
+  if (!(await allow(clientKey(request.headers)))) return jsonError("Too many reviews from here. Try again in a few minutes.", 429);
   const json = await readJson(request);
   if (!json.ok) return json.response;
   const areaId = typeof json.body.area === "string" ? json.body.area : defaultAreaId;
@@ -24,4 +24,4 @@ export async function POST(request: NextRequest) {
   });
   if (!result.ok) return jsonError(result.error, 400);
   return NextResponse.json({ review: result.value }, { status: 201 });
-}
+});

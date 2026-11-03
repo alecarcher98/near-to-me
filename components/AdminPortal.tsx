@@ -36,7 +36,12 @@ function comingSoonEmail(place: string) {
 }
 
 function downloadCsv(entries: WaitlistEntry[]) {
-  const cell = (value: string | undefined) => `"${(value ?? "").replace(/"/g, '""')}"`;
+  // Prefixing formula characters stops spreadsheets running a value like =HYPERLINK(...) when the file is opened.
+  const cell = (value: string | undefined) => {
+    const text = value ?? "";
+    const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
   const rows = [["Location", "Name", "Email", "Typed location", "Source", "Signed up", "Emailed"], ...entries.map((entry) => [waitlistLocation(entry), entry.name, entry.email, entry.location, sourceLabels[entry.source], entry.createdAt.slice(0, 10), entry.notifiedAt?.slice(0, 10)])];
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob([rows.map((row) => row.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
@@ -158,7 +163,7 @@ export default function AdminPortal() {
           <Link className="admin-back" href="/"><ArrowLeft size={14} /> Back to the guide</Link>
           <p className="eyebrow">NEAR TO ME · ADMIN</p>
           <h1>Guide team sign-in</h1>
-          {!session.enabled && <p className="admin-message error">Admin sign-in isn't set up on this server yet. Set <code>ADMIN_USERS</code> and <code>ADMIN_SESSION_SECRET</code> (see README).</p>}
+          {!session.enabled && <p className="admin-message error">Admin sign-in isn't available on this server yet. The site owner can find setup steps in the README.</p>}
           <label className="field-label">NAME<input name="name" autoComplete="username" required /></label>
           <label className="field-label">PASSWORD<input name="password" type="password" autoComplete="current-password" required /></label>
           {message && <p className={message.error ? "admin-message error" : "admin-message"} role="status">{message.text}</p>}
@@ -206,7 +211,7 @@ export default function AdminPortal() {
                     <span className="admin-pill">{enquiryLabels[enquiry.kind]}</span>
                     <b>{enquiry.businessName}</b>
                     {enquiry.comingSoonFor && <span className="admin-pill admin-pill-soon">Outside live areas · {enquiry.comingSoonFor}</span>}
-                    <small>{enquiry.contactName} · <a href={`mailto:${enquiry.email}`}>{enquiry.email}</a>{enquiry.phone && ` · ${enquiry.phone}`} · {new Date(enquiry.createdAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>
+                    <small>{enquiry.contactName} · <a href={`mailto:${encodeURIComponent(enquiry.email)}`}>{enquiry.email}</a>{enquiry.phone && ` · ${enquiry.phone}`} · {new Date(enquiry.createdAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>
                     {(enquiry.businessType || enquiry.address || enquiry.openingDate || enquiry.website) && <small>{[enquiry.businessType, enquiry.address, enquiry.openingDate && `Opening ${enquiry.openingDate}`, enquiry.website].filter(Boolean).join(" · ")}</small>}
                     <p>{enquiry.message}</p>
                   </div>
@@ -243,7 +248,7 @@ export default function AdminPortal() {
                     </div>
                     {entries.map((entry) => (
                       <div className={entry.notifiedAt ? "admin-waitlist-row emailed" : "admin-waitlist-row"} key={entry.id}>
-                        <span><b>{entry.name || "—"}</b> <a href={`mailto:${entry.email}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`}>{entry.email}</a></span>
+                        <span><b>{entry.name || "—"}</b> <a href={`mailto:${encodeURIComponent(entry.email)}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`}>{entry.email}</a></span>
                         <small>{sourceLabels[entry.source]}{entry.role === "business" ? " · business" : ""} · typed “{entry.location}” · {new Date(entry.createdAt).toLocaleDateString("en-GB")}{entry.notifiedAt && ` · emailed ${new Date(entry.notifiedAt).toLocaleDateString("en-GB")}`}</small>
                         <span className="admin-row-actions">
                           <button className="outline-button" onClick={() => void markEmailed([entry.id], !entry.notifiedAt)}>{entry.notifiedAt ? "Undo emailed" : "Mark emailed"}</button>

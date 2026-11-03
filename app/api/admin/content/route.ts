@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-request";
 import { defaultAreaId, getArea } from "@/lib/areas";
 import { contentStore } from "@/lib/content-store";
-import { jsonError, readJson } from "@/lib/http";
+import { jsonError, readJson, route } from "@/lib/http";
 import type { AreaContent } from "@/lib/types";
 import { parseEnquiryStatus, parseEvent, parsePlace, parseUpdate, type Parsed } from "@/lib/validation";
 
@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 type Editable = "places" | "events" | "updates";
 const parsers: Record<Editable, (input: unknown) => Parsed<{ id: string }>> = { places: parsePlace, events: parseEvent, updates: parseUpdate };
 const deletable: (keyof AreaContent)[] = ["places", "events", "updates", "reviews", "enquiries"];
+const privateHeaders = { "cache-control": "no-store" };
 
 function guard(request: NextRequest, mutating: boolean): { error: NextResponse } | { admin: string; areaId: string } {
   const access = requireAdmin(request, mutating);
@@ -20,14 +21,14 @@ function guard(request: NextRequest, mutating: boolean): { error: NextResponse }
   return { admin: access.admin, areaId };
 }
 
-export async function GET(request: NextRequest) {
+export const GET = route(async (request: NextRequest) => {
   const access = guard(request, false);
   if ("error" in access) return access.error;
-  return NextResponse.json(await contentStore.read(access.areaId), { headers: { "cache-control": "no-store" } });
-}
+  return NextResponse.json(await contentStore.read(access.areaId), { headers: privateHeaders });
+});
 
 // Create or replace one place, event or update, matched by id.
-export async function PUT(request: NextRequest) {
+export const PUT = route(async (request: NextRequest) => {
   const access = guard(request, true);
   if ("error" in access) return access.error;
   const json = await readJson(request);
@@ -42,11 +43,12 @@ export async function PUT(request: NextRequest) {
     if (index >= 0) list[index] = parsed.value;
     else list.unshift(parsed.value);
   });
-  return NextResponse.json({ item: parsed.value });
-}
+  console.info(`Admin ${access.admin} saved ${collection}/${parsed.value.id} in ${access.areaId}.`);
+  return NextResponse.json({ item: parsed.value }, { headers: privateHeaders });
+});
 
 // Moves a business enquiry through new → in-progress → done.
-export async function PATCH(request: NextRequest) {
+export const PATCH = route(async (request: NextRequest) => {
   const access = guard(request, true);
   if ("error" in access) return access.error;
   const json = await readJson(request);
@@ -58,10 +60,10 @@ export async function PATCH(request: NextRequest) {
     if (enquiry) enquiry.status = parsed.value.status;
     return Boolean(enquiry);
   });
-  return found ? NextResponse.json({ ok: true }) : jsonError("Enquiry not found.", 404);
-}
+  return found ? NextResponse.json({ ok: true }, { headers: privateHeaders }) : jsonError("Enquiry not found.", 404);
+});
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = route(async (request: NextRequest) => {
   const access = guard(request, true);
   if ("error" in access) return access.error;
   const collection = request.nextUrl.searchParams.get("collection") as keyof AreaContent | null;
@@ -73,5 +75,6 @@ export async function DELETE(request: NextRequest) {
     if (index >= 0) list.splice(index, 1);
     return index >= 0;
   });
-  return removed ? NextResponse.json({ ok: true }) : jsonError("Item not found.", 404);
-}
+  if (removed) console.info(`Admin ${access.admin} removed ${collection}/${id} in ${access.areaId}.`);
+  return removed ? NextResponse.json({ ok: true }, { headers: privateHeaders }) : jsonError("Item not found.", 404);
+});

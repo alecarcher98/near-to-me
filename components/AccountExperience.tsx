@@ -197,13 +197,13 @@ export default function AccountExperience() {
             )}
             {mode === "signup" && role === "explorer" && <fieldset className="interest-fieldset"><legend>WHAT DO YOU LIKE TO FIND? <span>OPTIONAL</span></legend><label><input type="checkbox" name="interests" value="Food & drink" /> Food & drink</label><label><input type="checkbox" name="interests" value="Pubs & nights out" /> Pubs & nights out</label><label><input type="checkbox" name="interests" value="Independent shops" /> Independent shops</label><label><input type="checkbox" name="interests" value="Events & culture" /> Events & culture</label><label><input type="checkbox" name="interests" value="Things to do" /> Things to do</label></fieldset>}
             {mode === "signup" && <label className="account-check"><input type="checkbox" name="localUpdates" /> {role === "business" ? "Send me tips for reaching more local customers." : "Send me a weekly round-up of new openings and events."}</label>}
-            {mode === "signup" && <label className="account-check"><input type="checkbox" name="terms" required /> I agree to the <a href="#terms">Terms</a> and <a href="#privacy">Privacy Policy</a>.</label>}
+            {mode === "signup" && <label className="account-check"><input type="checkbox" name="terms" required /> I agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</label>}
             {mode === "login" && <button className="forgot-password" type="button" onClick={() => setNotice("Password reset requires a verified email service; it isn’t enabled in this local preview.")}>Forgot password?</button>}
             <input className="form-trap" name="contactTime" tabIndex={-1} autoComplete="off" aria-hidden="true" />
             <button className="account-submit" type="submit" disabled={sending}>{mode === "signup" ? role === "business" ? "Create your business account" : "Create my free account" : "Sign in to Near to me"} <ArrowRight size={16} /></button>
           </form>
           {notice && <p className={notice.startsWith("We couldn't") || notice.startsWith("Something") || notice.startsWith("Those") || notice.startsWith("Use at") ? "account-notice error" : "account-notice"} role="status">{notice}</p>}
-          {mode === "login" && <p className="account-legal">By continuing, you agree to our <a href="#terms">Terms</a> and <a href="#privacy">Privacy Policy.</a></p>}
+          {mode === "login" && <p className="account-legal">By continuing, you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy.</a></p>}
           <p className="account-preview-note">Preview mode: profile details stay in this browser. Passwords are never saved. Live sign-in, email verification and password recovery need a production authentication service.</p>
         </section>
       </div>

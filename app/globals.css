@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 
 :root {
   --ink: #172f27;
@@ -10,8 +9,8 @@
   --green-dark: #125b3d;
   --mint: #e9f2ea;
   --gold: #e8b94f;
-  --font: "DM Sans", sans-serif;
-  --display: "Manrope", sans-serif;
+  --font: var(--font-body), "DM Sans", sans-serif;
+  --display: var(--font-display), sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -187,8 +186,8 @@ kbd { padding: 4px 5px; border: 1px solid #e7eae6; border-radius: 4px; color: #a
   --green-dark: #0d3928;
   --mint: #e9f2ea;
   --gold: #d3a643;
-  --font: "DM Sans", sans-serif;
-  --display: "Space Grotesk", sans-serif;
+  --font: var(--font-body), "DM Sans", sans-serif;
+  --display: var(--font-display), "Space Grotesk", sans-serif;
   --acid: #d5ff3f;
   --forest: #153b2d;
 }
@@ -620,3 +619,11 @@ body { background: var(--page); }
 .admin-waitlist-row .admin-row-actions { grid-column: 2; grid-row: 1 / span 2; }
 .admin-waitlist-row.emailed { opacity: .6; }
 @media (max-width: 600px) { .coming-soon-form,.coming-soon-form input { flex: 1 1 100%; width: auto; }.admin-waitlist-row { grid-template-columns: 1fr; }.admin-waitlist-row .admin-row-actions { grid-column: 1; grid-row: auto; } }
+
+/* Privacy and terms */
+.legal-content { max-width: 720px; margin: 28px auto 0; padding: 30px clamp(18px,4vw,40px); border: 1px solid #dedfd3; background: #fffef9; }
+.legal-content h1 { margin: 0 0 16px; font-size: clamp(30px,4vw,42px); letter-spacing: -1.6px; }
+.legal-content h2 { margin: 24px 0 8px; font-size: 17px; letter-spacing: -.5px; }
+.legal-content p,.legal-content li { color: #4f5d4c; font-size: 13px; line-height: 1.7; }
+.legal-content ul { padding-left: 18px; }
+.legal-content a { color: #476c48; text-decoration: underline; text-underline-offset: 2px; }
