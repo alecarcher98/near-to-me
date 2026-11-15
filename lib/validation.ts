@@ -85,6 +85,9 @@ export function parsePlace(input: unknown): Parsed<Place> {
     const tags = Array.isArray(f.record.tags) ? f.record.tags.filter((tag): tag is string => typeof tag === "string" && /^[a-z-]{1,30}$/.test(tag)).slice(0, 10) : [];
     const launchSpotlight = f.flag("launchSpotlight");
     const sponsored = f.flag("sponsored");
+    const rawWords = f.text("what3words", 80).replace(/^(w3w|what3words)?:?\s*\/*/i, "").toLowerCase();
+    if (rawWords && !/^[a-z]+\.[a-z]+\.[a-z]+$/.test(rawWords)) throw new InvalidInput("what3words must be three words, like ///lost.quite.roses.");
+    const what3words = rawWords ? `///${rawWords}` : undefined;
     return {
       id: idFor(f.record, name),
       name,
@@ -94,6 +97,7 @@ export function parsePlace(input: unknown): Parsed<Place> {
       lat: f.number("lat", 49, 61),
       lng: f.number("lng", -9, 2.5),
       ...(f.flag("approximateLocation") ? { approximateLocation: true } : {}),
+      ...(what3words ? { what3words } : {}),
       ...(tags.length ? { tags } : {}),
       ...(f.flag("recommended") ? { recommended: true } : {}),
       ...(sponsored ? { sponsored, sponsoredUntil: f.date("sponsoredUntil") } : {}),
@@ -193,7 +197,7 @@ export function parseEnquiryStatus(input: unknown): Parsed<Pick<Enquiry, "id" | 
   });
 }
 
-const interestSources: readonly WaitlistSource[] = ["signup", "business-signup", "explore"];
+const interestSources: readonly WaitlistSource[] = ["welcome", "signup", "business-signup", "explore"];
 
 export type Interest = { email: string; name?: string; location?: string; lat?: number; lng?: number; source: WaitlistSource; role?: WaitlistEntry["role"] };
 

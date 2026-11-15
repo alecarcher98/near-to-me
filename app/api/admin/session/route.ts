@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { adminConfig, adminCookieName, checkCredentials, currentAdmin, sessionHours, signSession } from "@/lib/admin-auth";
+import { adminConfig, adminCookieName, checkCredentials, currentAdmin, isOwner, sessionHours, signSession } from "@/lib/admin-auth";
 import { isSameOrigin, jsonError, readJson, route } from "@/lib/http";
 import { clientKey, createRateLimiter } from "@/lib/rate-limit";
 
@@ -10,13 +10,14 @@ const allowFromAddress = createRateLimiter("login-ip", 8, 15 * 60_000);
 const allowForName = createRateLimiter("login-name", 10, 15 * 60_000);
 
 export const GET = route(async (request: NextRequest) => {
-  const { enabled, problems } = adminConfig();
+  const { enabled, problems, owners } = adminConfig();
   if (!enabled) console.error(`Admin sign-in disabled: ${problems.join("; ")}.`);
-  return NextResponse.json({ enabled, admin: currentAdmin(request.cookies.get(adminCookieName())?.value) }, { headers: { "cache-control": "no-store" } });
+  const admin = currentAdmin(request.cookies.get(adminCookieName())?.value);
+  return NextResponse.json({ enabled, admin, owner: admin ? isOwner(admin, owners) : false }, { headers: { "cache-control": "no-store" } });
 });
 
 export const POST = route(async (request: NextRequest) => {
-  const { enabled, secret, users } = adminConfig();
+  const { enabled, secret, users, owners } = adminConfig();
   if (!enabled) return jsonError("Admin sign-in isn't set up on this server yet.", 503);
   if (!isSameOrigin(request)) return jsonError("Sign in from this site.", 403);
   if (!(await allowFromAddress(clientKey(request.headers)))) return jsonError("Too many sign-in attempts. Wait 15 minutes and try again.", 429);
@@ -30,7 +31,7 @@ export const POST = route(async (request: NextRequest) => {
   if (!(await checkCredentials(users, name, password))) return jsonError("That name and password don't match an admin account.", 401);
 
   const credential = users.get(name.trim().toLowerCase())!;
-  const response = NextResponse.json({ admin: name.trim() });
+  const response = NextResponse.json({ admin: name.trim(), owner: isOwner(name, owners) });
   response.cookies.set(adminCookieName(), signSession(name.trim(), credential, secret), {
     httpOnly: true,
     sameSite: "strict",

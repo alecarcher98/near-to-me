@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Privacy — Near to me", description
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy" updated="3 November 2026">
+    <LegalPage title="Privacy" updated="15 November 2026">
       <p>{site.name} is run by {site.operator}. This page explains what we collect when you use the site, why, and what you can ask us to do with it. To ask a question or exercise any of your rights, {contactLine()}.</p>
 
       <h2>Your location</h2>
@@ -17,6 +17,7 @@ export default function PrivacyPage() {
 
       <h2>Things you send us</h2>
       <ul>
+        <li><b>Your area and email.</b> When you first visit we ask for your area (your town, postcode or shared location) and your email, with an optional first name. We keep your email, name, what you typed and the nearest postcode area (never your exact position) so we can show you the right guide and tell you about Near to me where you live.</li>
         <li><b>Coming-soon sign-ups.</b> If you’re outside an area we cover, we keep your email, optional name and the town or postcode you gave, so we can tell you when we launch there.</li>
         <li><b>Business enquiries and business sign-ups.</b> We keep the contact and business details you send so our team can reply and, if you ask, list your business.</li>
         <li><b>Reviews.</b> Your review, rating and the name you give (or “Local explorer”) are published on the site.</li>
@@ -27,7 +28,7 @@ export default function PrivacyPage() {
       <p>The public site doesn’t set cookies. Our admin team’s sign-in uses one strictly necessary cookie.</p>
 
       <h2>Who processes data for us</h2>
-      <p>The site is hosted by our web host, and saved content is kept in our database provider’s systems. postcodes.io receives postcodes and positions for lookups. Fonts are served from our own site.</p>
+      <p>The site is hosted by our web host, and saved content is kept in our database provider’s systems. postcodes.io receives postcodes and positions for lookups. The street map loads map images from a map tile service (OpenStreetMap unless stated otherwise), which receives your internet address and the area of the map you’re viewing, as any website you load images from would. Fonts are served from our own site.</p>
 
       <h2>Your rights</h2>
       <p>Under UK data protection law you can ask to see, correct or delete the personal data we hold about you, or object to how we use it. You can also complain to the <a href="https://ico.org.uk/make-a-complaint/" target="_blank" rel="noreferrer">Information Commissioner’s Office</a>.</p>

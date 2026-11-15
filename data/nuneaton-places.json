@@ -1224,5 +1224,97 @@
     "address": "Unit 2, Newton Retail Park, Nuneaton CV11 4FN",
     "lat": 52.525865,
     "lng": -1.467941
+  },
+  {
+    "id": "ev-asda-superstore",
+    "name": "EV charging · ASDA Superstore",
+    "category": "EV charging",
+    "details": "Electric vehicle charging in the ASDA Superstore car park. Check the operator's app for live availability and prices before you travel.",
+    "address": "ASDA, Newton Road, Nuneaton CV11 4FL",
+    "lat": 52.526965,
+    "lng": -1.466571,
+    "what3words": "///lost.quite.roses"
+  },
+  {
+    "id": "ev-coton-road",
+    "name": "EV charging · Coton Road",
+    "category": "EV charging",
+    "details": "On-street EV bays on the west side of Coton Road, just north of the A444 island. Connected Kerb chargers. EVs only while charging: 2 hours max, no return within 4 hours. Check the operator's app for live availability and prices before you travel.",
+    "address": "Coton Road, Nuneaton CV11 5TW",
+    "lat": 52.518995,
+    "lng": -1.467458,
+    "what3words": "///marker.fills.span"
+  },
+  {
+    "id": "ev-town-hall-car-park",
+    "name": "EV charging · Town Hall Pay & Display Car Park",
+    "category": "EV charging",
+    "details": "EV charging in the short-stay car park behind Nuneaton Town Hall, between the Riverside and Town Hall car parks. Car park fees apply. Check the operator's app for live availability and prices before you travel.",
+    "address": "Coton Road, Nuneaton CV11 5AA",
+    "lat": 52.52139,
+    "lng": -1.46738,
+    "what3words": "///year.belt.assist"
+  },
+  {
+    "id": "ev-lutterworth-road-attleborough",
+    "name": "EV charging · Lutterworth Road, Attleborough",
+    "category": "EV charging",
+    "details": "EV-only charging bays by the Lutterworth Road shops in Attleborough. Check the operator's app for live availability and prices before you travel.",
+    "address": "Lutterworth Road, Attleborough, Nuneaton CV11 4LE",
+    "lat": 52.5119,
+    "lng": -1.4552,
+    "approximateLocation": true,
+    "what3words": "///dull.rally.rooms"
+  },
+  {
+    "id": "ev-pingles-leisure-centre",
+    "name": "EV charging · Pingles Leisure Centre",
+    "category": "EV charging",
+    "details": "EV charging in the Pingles Leisure Centre car park. Check the operator's app for live availability and prices before you travel.",
+    "address": "Avenue Road, Nuneaton CV11 4LX",
+    "lat": 52.515414,
+    "lng": -1.462741,
+    "what3words": "///back.slice.filer"
+  },
+  {
+    "id": "ev-attleborough-arms",
+    "name": "EV charging · Attleborough Arms",
+    "category": "EV charging",
+    "details": "Rapid EV charging (CCS) at the Attleborough Arms pub car park. Check the operator's app for live availability and prices before you travel.",
+    "address": "Highfield Road, Attleborough, Nuneaton CV11 4PL",
+    "lat": 52.515327,
+    "lng": -1.455631,
+    "what3words": "///purely.month.ground"
+  },
+  {
+    "id": "ev-esso-hinckley-road",
+    "name": "EV charging · Esso, Hinckley Road",
+    "category": "EV charging",
+    "details": "EV charging at the Esso (MFG Weddington) filling station on Hinckley Road. Check the operator's app for live availability and prices before you travel.",
+    "address": "118 Hinckley Road, Nuneaton CV11 6LS",
+    "lat": 52.5287,
+    "lng": -1.451,
+    "what3words": "///lift.chase.pulse"
+  },
+  {
+    "id": "ev-the-acorn-horeston-grange",
+    "name": "EV charging · The Acorn, Horeston Grange",
+    "category": "EV charging",
+    "details": "EV charging at The Acorn, Horeston Grange shopping centre. Check the operator's app for live availability and prices before you travel.",
+    "address": "Horeston Grange Shopping Centre, Camborne Drive, Nuneaton CV11 6GU",
+    "lat": 52.526628,
+    "lng": -1.438392,
+    "what3words": "///famous.banana.lungs"
+  },
+  {
+    "id": "ev-coniston-way",
+    "name": "EV charging · Coniston Way",
+    "category": "EV charging",
+    "details": "Rapid EV charging by the Co-op on Coniston Way, St Nicolas Park. Check the operator's app for live availability and prices before you travel.",
+    "address": "Coniston Way, Nuneaton CV11 6DG",
+    "lat": 52.536,
+    "lng": -1.4455,
+    "approximateLocation": true,
+    "what3words": "///sock.pocket.fails"
   }
 ]

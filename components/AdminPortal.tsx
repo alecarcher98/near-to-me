@@ -1,28 +1,42 @@
 "use client";
 
-import { ArrowLeft, CalendarDays, Copy, Download, Globe, Inbox, LogOut, Mail, MapPin, Megaphone, MessageCircle, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Activity, ArrowLeft, CalendarDays, Copy, Download, Globe, Inbox, LogOut, Mail, MapPin, Megaphone, MessageCircle, Pencil, Plus, RefreshCw, Search, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { areas, defaultAreaId } from "@/lib/areas";
 import { weekdays } from "@/lib/events";
 import { placeLabel } from "@/lib/geocode";
 import { isSponsored, isSpotlight, placeCategories } from "@/lib/places";
-import type { AreaContent, Enquiry, LocalEvent, Place, Update, WaitlistEntry } from "@/lib/types";
+import type { AreaContent, Enquiry, LocalEvent, Member, Place, Update, WaitlistEntry } from "@/lib/types";
 
-type Section = "enquiries" | "waitlist" | "places" | "events" | "updates" | "reviews";
+type Section = "health" | "signups" | "waitlist" | "enquiries" | "places" | "events" | "updates" | "reviews";
+type Session = { enabled: boolean; admin: string | null; owner?: boolean };
+type Level = "ok" | "warning" | "down";
+type Health = {
+  status: Level;
+  checkedAt: string;
+  deployment: { environment?: string; commit: string | null; region: string | null };
+  checks: { name: string; level: Level; detail: string; ms?: number }[];
+  signups: { total: number; live: number; waitlist: number; today: number; week: number; byDay: { date: string; count: number }[] };
+  comingSoon: { people: number; notEmailed: number; locations: number; top: { location: string; people: number; notEmailed: number; businesses: number }[] };
+  areas: { id: string; name: string; members: number; places: number | null; events: number | null; reviews: number | null; reviewsThisWeek: number | null; newEnquiries: number | null }[];
+};
 type Draft<T> = Partial<T> & { isNew?: boolean };
 
 const area = areas[defaultAreaId];
-const sections: { id: Section; label: string; icon: typeof Inbox }[] = [
+// Health, sign-ups and the coming-soon list are for the main admins (ADMIN_OWNERS) only.
+const sections: { id: Section; label: string; icon: typeof Inbox; ownerOnly?: boolean }[] = [
+  { id: "health", label: "Health", icon: Activity, ownerOnly: true },
+  { id: "signups", label: "Sign-ups", icon: Users, ownerOnly: true },
+  { id: "waitlist", label: "Coming soon", icon: Globe, ownerOnly: true },
   { id: "enquiries", label: "Business enquiries", icon: Inbox },
-  { id: "waitlist", label: "Coming soon", icon: Globe },
   { id: "places", label: "Places", icon: MapPin },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "updates", label: "Noticeboard", icon: Megaphone },
   { id: "reviews", label: "Reviews", icon: MessageCircle },
 ];
 const enquiryLabels: Record<Enquiry["kind"], string> = { sponsorship: "Sponsorship", listing: "New listing", reviews: "Reviews", other: "Other" };
-const sourceLabels: Record<WaitlistEntry["source"], string> = { signup: "Signed up", "business-signup": "Business sign-up", enquiry: "Business enquiry", explore: "Explore page" };
+const sourceLabels: Record<WaitlistEntry["source"], string> = { welcome: "Welcome screen", signup: "Signed up", "business-signup": "Business sign-up", enquiry: "Business enquiry", explore: "Explore page" };
 
 function waitlistLocation(entry: WaitlistEntry) {
   return entry.place ? placeLabel(entry.place) : entry.location;
@@ -35,19 +49,30 @@ function comingSoonEmail(place: string) {
   };
 }
 
-function downloadCsv(entries: WaitlistEntry[]) {
+function downloadCsv(name: string, rows: (string | undefined)[][]) {
   // Prefixing formula characters stops spreadsheets running a value like =HYPERLINK(...) when the file is opened.
   const cell = (value: string | undefined) => {
     const text = value ?? "";
     const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
     return `"${safe.replace(/"/g, '""')}"`;
   };
-  const rows = [["Location", "Name", "Email", "Typed location", "Source", "Signed up", "Emailed"], ...entries.map((entry) => [waitlistLocation(entry), entry.name, entry.email, entry.location, sourceLabels[entry.source], entry.createdAt.slice(0, 10), entry.notifiedAt?.slice(0, 10)])];
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob([rows.map((row) => row.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
-  link.download = `near-to-me-coming-soon-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `near-to-me-${name}-${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(link.href);
+}
+
+function downloadWaitlist(entries: WaitlistEntry[]) {
+  downloadCsv("coming-soon", [["Location", "Name", "Email", "Typed location", "Source", "Signed up", "Emailed"], ...entries.map((entry) => [waitlistLocation(entry), entry.name, entry.email, entry.location, sourceLabels[entry.source], entry.createdAt.slice(0, 10), entry.notifiedAt?.slice(0, 10)])]);
+}
+
+function memberPlace(member: Member) {
+  return member.place ? placeLabel(member.place) : member.location;
+}
+
+function downloadMembers(members: Member[]) {
+  downloadCsv("sign-ups", [["Name", "Email", "Area", "Typed location", "Status", "Signed up", "Last updated"], ...members.map((member) => [member.name, member.email, memberPlace(member), member.location, member.status === "live" ? `Live (${areas[member.areaId ?? ""]?.name ?? member.areaId})` : "Coming soon", member.createdAt.slice(0, 10), member.updatedAt.slice(0, 10)])]);
 }
 
 function dateInput(value?: string) {
@@ -68,9 +93,11 @@ async function api(method: string, url: string, body?: unknown) {
 }
 
 export default function AdminPortal() {
-  const [session, setSession] = useState<{ enabled: boolean; admin: string | null } | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [content, setContent] = useState<AreaContent | null>(null);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [health, setHealth] = useState<Health | null>(null);
   const [section, setSection] = useState<Section>("enquiries");
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const [placeDraft, setPlaceDraft] = useState<Draft<Place> | null>(null);
@@ -78,23 +105,41 @@ export default function AdminPortal() {
   const [updateDraft, setUpdateDraft] = useState<Draft<Update> | null>(null);
   const [placeQuery, setPlaceQuery] = useState("");
 
-  const load = useCallback(async () => {
+  const isOwner = Boolean(session?.owner);
+
+  const loadHealth = useCallback(async () => {
     try {
-      const [areaContent, waitlistResult] = await Promise.all([api("GET", `/api/admin/content?area=${area.id}`), api("GET", "/api/admin/waitlist")]);
-      setContent(areaContent as AreaContent);
-      setWaitlist((waitlistResult as { entries: WaitlistEntry[] }).entries);
+      setHealth(await api("GET", "/api/admin/health") as Health);
     } catch (error) {
-      setMessage({ text: error instanceof Error ? error.message : "Could not load content.", error: true });
+      setMessage({ text: error instanceof Error ? error.message : "Could not run the health check.", error: true });
     }
   }, []);
 
+  const load = useCallback(async () => {
+    try {
+      const [areaContent, waitlistResult, membersResult] = await Promise.all([
+        api("GET", `/api/admin/content?area=${area.id}`),
+        isOwner ? api("GET", "/api/admin/waitlist") : Promise.resolve({ entries: [] }),
+        isOwner ? api("GET", "/api/admin/members") : Promise.resolve({ members: [] }),
+      ]);
+      setContent(areaContent as AreaContent);
+      setWaitlist((waitlistResult as { entries: WaitlistEntry[] }).entries);
+      setMembers((membersResult as { members: Member[] }).members);
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : "Could not load content.", error: true });
+    }
+  }, [isOwner]);
+
   useEffect(() => {
-    api("GET", "/api/admin/session").then((result) => setSession(result as { enabled: boolean; admin: string | null })).catch(() => setSession({ enabled: false, admin: null }));
+    api("GET", "/api/admin/session").then((result) => setSession(result as Session)).catch(() => setSession({ enabled: false, admin: null }));
   }, []);
 
   useEffect(() => {
-    if (session?.admin) void load();
-  }, [session?.admin, load]);
+    if (!session?.admin) return;
+    setSection(session.owner ? "health" : "enquiries");
+    void load();
+    if (session.owner) void loadHealth();
+  }, [session?.admin, session?.owner, load, loadHealth]);
 
   async function run(action: () => Promise<unknown>, success: string) {
     try {
@@ -112,8 +157,8 @@ export default function AdminPortal() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     try {
-      const result = await api("POST", "/api/admin/session", { name: form.get("name"), password: form.get("password") }) as { admin: string };
-      setSession({ enabled: true, admin: result.admin });
+      const result = await api("POST", "/api/admin/session", { name: form.get("name"), password: form.get("password") }) as { admin: string; owner?: boolean };
+      setSession({ enabled: true, admin: result.admin, owner: result.owner });
       setMessage(null);
     } catch (error) {
       setMessage({ text: error instanceof Error ? error.message : "Sign-in failed.", error: true });
@@ -122,8 +167,11 @@ export default function AdminPortal() {
 
   async function signOut() {
     await api("DELETE", "/api/admin/session").catch(() => undefined);
-    setSession((current) => current && { ...current, admin: null });
+    setSession((current) => current && { ...current, admin: null, owner: false });
     setContent(null);
+    setMembers([]);
+    setWaitlist([]);
+    setHealth(null);
   }
 
   const save = (collection: "places" | "events" | "updates", item: Record<string, unknown>, done: () => void) =>
@@ -193,13 +241,17 @@ export default function AdminPortal() {
         <div className="admin-header-actions"><span>Signed in as <b>{session.admin}</b></span><Link className="outline-button" href="/">View site</Link><button className="outline-button" onClick={signOut}><LogOut size={14} /> Sign out</button></div>
       </header>
       <nav className="admin-tabs">
-        {sections.map(({ id, label, icon: Icon }) => (
-          <button key={id} className={section === id ? "admin-tab active" : "admin-tab"} onClick={() => setSection(id)}><Icon size={15} /> {label}{id === "enquiries" && newEnquiries > 0 && <span className="nav-count">{newEnquiries}</span>}{id === "waitlist" && waitingToHear > 0 && <span className="nav-count">{waitingToHear}</span>}</button>
+        {sections.filter((item) => isOwner || !item.ownerOnly).map(({ id, label, icon: Icon }) => (
+          <button key={id} className={section === id ? "admin-tab active" : "admin-tab"} onClick={() => setSection(id)}><Icon size={15} /> {label}{id === "enquiries" && newEnquiries > 0 && <span className="nav-count">{newEnquiries}</span>}{id === "waitlist" && waitingToHear > 0 && <span className="nav-count">{waitingToHear}</span>}{id === "health" && health && health.status !== "ok" && <span className={`health-dot health-${health.status}`} />}</button>
         ))}
       </nav>
       {message && <p className={message.error ? "admin-message error" : "admin-message"} role="status">{message.text}</p>}
       {!content ? <p className="admin-loading">Loading content…</p> : (
         <>
+          {section === "health" && isOwner && <HealthPanel health={health} onRefresh={() => void loadHealth()} onOpen={setSection} />}
+
+          {section === "signups" && isOwner && <MembersPanel members={members} onRemove={(member) => { if (window.confirm(`Remove ${member.email} completely? This deletes their sign-up and any coming-soon entries.`)) void run(() => api("DELETE", `/api/admin/members?id=${encodeURIComponent(member.id)}`), "Removed."); }} onCopy={copyText} />}
+
           {section === "enquiries" && (
             <section className="admin-panel">
               <h2>Business enquiries <small>{content.enquiries.length}</small></h2>
@@ -225,9 +277,9 @@ export default function AdminPortal() {
             </section>
           )}
 
-          {section === "waitlist" && (
+          {section === "waitlist" && isOwner && (
             <section className="admin-panel">
-              <div className="admin-panel-heading"><h2>Coming soon <small>{waitlist.length} people · {waitlistGroups.length} locations</small></h2>{waitlist.length > 0 && <button className="outline-button" onClick={() => downloadCsv(waitlist)}><Download size={14} /> Download CSV</button>}</div>
+              <div className="admin-panel-heading"><h2>Coming soon <small>{waitlist.length} people · {waitlistGroups.length} locations</small></h2>{waitlist.length > 0 && <button className="outline-button" onClick={() => downloadWaitlist(waitlist)}><Download size={14} /> Download CSV</button>}</div>
               <p className="admin-hint">People who signed up, enquired or searched from somewhere {area.name} doesn’t cover yet. They’ve been told it’s coming soon. Email them, then mark them as emailed. Locations with the most people are listed first.</p>
               {waitlist.length === 0 && <p className="admin-empty">Nobody outside {area.name} has signed up yet.</p>}
               {waitlistGroups.map(([location, entries]) => {
@@ -325,6 +377,94 @@ export default function AdminPortal() {
   );
 }
 
+function HealthPanel({ health, onRefresh, onOpen }: { health: Health | null; onRefresh: () => void; onOpen: (section: Section) => void }) {
+  if (!health) return <p className="admin-loading">Running health checks…</p>;
+  const headline = { ok: "Everything is working.", warning: "Working, but something needs attention.", down: "Something is broken." }[health.status];
+  const busiest = Math.max(1, ...health.signups.byDay.map((item) => item.count));
+  return (
+    <section className="admin-panel">
+      <div className={`health-banner health-${health.status}`}>
+        <div><b>{headline}</b><small>Checked {new Date(health.checkedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}{health.deployment.environment && ` · ${health.deployment.environment}`}{health.deployment.commit && ` · build ${health.deployment.commit}`}{health.deployment.region && ` · ${health.deployment.region}`}</small></div>
+        <button className="outline-button" onClick={onRefresh}><RefreshCw size={14} /> Check again</button>
+      </div>
+
+      <div className="health-checks">
+        {health.checks.map((check) => (
+          <div className="health-check" key={check.name}>
+            <span className={`health-dot health-${check.level}`} />
+            <b>{check.name}</b>
+            <small>{check.detail}{check.ms !== undefined && ` · ${check.ms} ms`}</small>
+          </div>
+        ))}
+      </div>
+
+      <div className="health-stats">
+        <button onClick={() => onOpen("signups")}><small>Sign-ups</small><b>{health.signups.total}</b><span>{health.signups.today} today · {health.signups.week} this week</span></button>
+        <button onClick={() => onOpen("signups")}><small>In a live area</small><b>{health.signups.live}</b><span>Can use the guide now</span></button>
+        <button onClick={() => onOpen("waitlist")}><small>Waiting for their area</small><b>{health.comingSoon.people}</b><span>{health.comingSoon.locations} places · {health.comingSoon.notEmailed} not emailed</span></button>
+      </div>
+
+      <div className="health-card">
+        <h3>Sign-ups, last 14 days</h3>
+        <div className="health-bars" role="img" aria-label={`Sign-ups per day: ${health.signups.byDay.map((item) => `${item.date} ${item.count}`).join(", ")}`}>
+          {health.signups.byDay.map((item) => <span key={item.date} title={`${new Date(item.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}: ${item.count}`}><i style={{ height: `${(item.count / busiest) * 100}%` }} /><em>{item.count || ""}</em></span>)}
+        </div>
+      </div>
+
+      <div className="health-card">
+        <div className="admin-panel-heading"><h3>Where people want Near to me next</h3><button className="outline-button" onClick={() => onOpen("waitlist")}><Globe size={14} /> Open coming-soon list</button></div>
+        {health.comingSoon.top.length === 0 ? <p className="admin-empty">Nobody outside the live areas has signed up yet.</p> : (
+          <ol className="health-demand">
+            {health.comingSoon.top.map((row) => <li key={row.location}><b>{row.location}</b><span>{row.people} {row.people === 1 ? "person" : "people"}{row.businesses > 0 && ` · ${row.businesses} business${row.businesses === 1 ? "" : "es"}`}{row.notEmailed > 0 && ` · ${row.notEmailed} not emailed`}</span><i style={{ width: `${(row.people / health.comingSoon.top[0].people) * 100}%` }} /></li>)}
+          </ol>
+        )}
+      </div>
+
+      <div className="health-card">
+        <h3>Live areas</h3>
+        {health.areas.map((item) => (
+          <div className="health-area" key={item.id}>
+            <b><MapPin size={14} /> {item.name}</b>
+            <span>{item.members} sign-ups · {item.places ?? "?"} places · {item.events ?? "?"} events · {item.reviews ?? "?"} reviews ({item.reviewsThisWeek ?? 0} this week) · {item.newEnquiries ?? 0} new enquiries</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function MembersPanel({ members, onRemove, onCopy }: { members: Member[]; onRemove: (member: Member) => void; onCopy: (text: string, success: string) => void }) {
+  const [filter, setFilter] = useState<"all" | "live" | "waitlist">("all");
+  const [query, setQuery] = useState("");
+  const shown = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return members
+      .filter((member) => filter === "all" || member.status === filter)
+      .filter((member) => !search || `${member.name ?? ""} ${member.email} ${memberPlace(member)} ${member.location}`.toLowerCase().includes(search));
+  }, [members, filter, query]);
+  return (
+    <section className="admin-panel">
+      <div className="admin-panel-heading">
+        <h2>Sign-ups <small>{members.length} people · {members.filter((member) => member.status === "live").length} live · {members.filter((member) => member.status === "waitlist").length} waiting</small></h2>
+        {shown.length > 0 && <div className="admin-row-actions"><button className="outline-button" onClick={() => onCopy(shown.map((member) => member.email).join(", "), `Copied ${shown.length} email address${shown.length === 1 ? "" : "es"}.`)}><Copy size={14} /> Copy emails</button><button className="outline-button" onClick={() => downloadMembers(shown)}><Download size={14} /> Download CSV</button></div>}
+      </div>
+      <p className="admin-hint">Everyone who gave their area and email on the welcome screen or the Join page. People outside a live area are also on the Coming soon list. Removing someone deletes both.</p>
+      <div className="members-toolbar">
+        <label className="admin-search"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, email or area" /></label>
+        <select value={filter} onChange={(event) => setFilter(event.target.value as typeof filter)} aria-label="Show"><option value="all">Everyone</option><option value="live">In a live area</option><option value="waitlist">Waiting for their area</option></select>
+      </div>
+      {shown.length === 0 && <p className="admin-empty">{members.length === 0 ? "No sign-ups yet." : "Nobody matches that search."}</p>}
+      {shown.map((member) => (
+        <div className="admin-waitlist-row" key={member.id}>
+          <span><b>{member.name || "—"}</b> <a href={`mailto:${encodeURIComponent(member.email)}`}>{member.email}</a> <span className={member.status === "live" ? "admin-pill" : "admin-pill admin-pill-soon"}>{member.status === "live" ? `Live · ${areas[member.areaId ?? ""]?.name ?? member.areaId}` : "Coming soon"}</span></span>
+          <small><MapPin size={11} /> {memberPlace(member)}{member.location !== memberPlace(member) && ` · typed “${member.location}”`} · joined {new Date(member.createdAt).toLocaleDateString("en-GB")}</small>
+          <span className="admin-row-actions"><button className="icon-outline" onClick={() => onRemove(member)} aria-label={`Remove ${member.email}`}><Trash2 size={15} /></button></span>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function formObject(form: HTMLFormElement) {
   return Object.fromEntries(new FormData(form)) as Record<string, string>;
 }
@@ -368,7 +508,7 @@ function PlaceForm({ draft, onSave, onCancel }: { draft: Draft<Place>; onSave: (
       onSave({ ...values, id: draft.isNew ? undefined : draft.id, tags: values.healthy ? ["healthy"] : [], launchSpotlight: Boolean(values.launchSpotlight), sponsored: Boolean(values.sponsored), recommended: Boolean(values.recommended), approximateLocation: draft.approximateLocation });
     }}>
       <div className="form-two"><label className="field-label">NAME<input name="name" required defaultValue={draft.name} /></label><label className="field-label">CATEGORY<select name="category" defaultValue={draft.category}>{placeCategories.map((category) => <option key={category}>{category}</option>)}</select></label></div>
-      <label className="field-label">ADDRESS (WITH POSTCODE)<input name="address" required defaultValue={draft.address} /></label>
+      <div className="form-two"><label className="field-label">ADDRESS (WITH POSTCODE)<input name="address" required defaultValue={draft.address} /></label><label className="field-label">WHAT3WORDS <span className="optional">(optional, shown for copying only)</span><input name="what3words" defaultValue={draft.what3words} placeholder="///lost.quite.roses" /></label></div>
       <div className="form-three">
         <label className="field-label">LATITUDE<input name="lat" required inputMode="decimal" value={lat} onChange={(event) => setLat(event.target.value)} /></label>
         <label className="field-label">LONGITUDE<input name="lng" required inputMode="decimal" value={lng} onChange={(event) => setLng(event.target.value)} /></label>

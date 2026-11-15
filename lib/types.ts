@@ -7,6 +7,8 @@ export type Place = {
   lat: number;
   lng: number;
   approximateLocation?: boolean;
+  // e.g. "///lost.quite.roses". Copied as text only; the site never calls or links to what3words.
+  what3words?: string;
   tags?: string[];
   recommended?: boolean;
   sponsored?: boolean;
@@ -83,7 +85,7 @@ export type ResolvedPlace = {
   lng: number;
 };
 
-export type WaitlistSource = "signup" | "business-signup" | "enquiry" | "explore";
+export type WaitlistSource = "welcome" | "signup" | "business-signup" | "enquiry" | "explore";
 
 // Someone who asked for Near to me somewhere it isn't live yet.
 export type WaitlistEntry = {
@@ -96,6 +98,21 @@ export type WaitlistEntry = {
   role?: "explorer" | "business";
   createdAt: string;
   notifiedAt?: string;
+};
+
+// Everyone who has given their area and email, whether or not the area is live yet.
+export type Member = {
+  id: string;
+  email: string;
+  name?: string;
+  // What they typed, or the label of the nearest postcode for a shared position.
+  location: string;
+  place?: ResolvedPlace;
+  // Set when their location is inside a live area.
+  areaId?: string;
+  status: "live" | "waitlist";
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type AreaContent = {

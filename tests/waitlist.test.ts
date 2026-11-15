@@ -36,6 +36,9 @@ let routes: {
   enquiries: typeof import("@/app/api/enquiries/route");
   session: typeof import("@/app/api/admin/session/route");
   admin: typeof import("@/app/api/admin/waitlist/route");
+  join: typeof import("@/app/api/join/route");
+  members: typeof import("@/app/api/admin/members/route");
+  health: typeof import("@/app/api/admin/health/route");
 };
 
 function request(url: string, init: { method?: string; body?: unknown; cookie?: string } = {}) {
@@ -58,6 +61,9 @@ beforeAll(async () => {
     enquiries: await import("@/app/api/enquiries/route"),
     session: await import("@/app/api/admin/session/route"),
     admin: await import("@/app/api/admin/waitlist/route"),
+    join: await import("@/app/api/join/route"),
+    members: await import("@/app/api/admin/members/route"),
+    health: await import("@/app/api/admin/health/route"),
   };
 });
 
@@ -160,9 +166,73 @@ describe("coming-soon sign-ups", () => {
   });
 });
 
+describe("welcome screen sign-ups", () => {
+  it("lets people in a live area straight in and records them as members", async () => {
+    const response = await routes.join.POST(request("/api/join", { method: "POST", body: { email: "Live@Example.com", name: "Liv", location: "CV11 4DZ" } }));
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ status: "active", areaId: "nuneaton", point: { lat: 52.523, lng: -1.4665 } });
+    const { members } = await (await routes.members.GET(request("/api/admin/members", { cookie: await signIn() }))).json();
+    expect(members[0]).toMatchObject({ email: "live@example.com", name: "Liv", status: "live", areaId: "nuneaton" });
+  });
+
+  it("puts people elsewhere on the waitlist and says how many have asked", async () => {
+    await routes.join.POST(request("/api/join", { method: "POST", body: { email: "w1@example.com", location: "Hinckley" } }));
+    const response = await routes.join.POST(request("/api/join", { method: "POST", body: { email: "w2@example.com", location: "Hinckley" } }));
+    expect(await response.json()).toMatchObject({ status: "coming-soon", placeName: "Hinckley, Leicestershire" });
+    const cookie = await signIn();
+    const { entries } = await (await routes.admin.GET(request("/api/admin/waitlist", { cookie }))).json();
+    expect(entries[0]).toMatchObject({ email: "w2@example.com", source: "welcome" });
+    const { members } = await (await routes.members.GET(request("/api/admin/members", { cookie }))).json();
+    expect(members.find((member: { email: string }) => member.email === "w2@example.com")).toMatchObject({ status: "waitlist" });
+  });
+
+  it("asks again when the place can't be found, without saving it", async () => {
+    const response = await routes.join.POST(request("/api/join", { method: "POST", body: { email: "x@example.com", location: "Atlantis" } }));
+    expect(response.status).toBe(422);
+    const { members } = await (await routes.members.GET(request("/api/admin/members", { cookie: await signIn() }))).json();
+    expect(members.some((member: { email: string }) => member.email === "x@example.com")).toBe(false);
+  });
+
+  it("removes a member and their coming-soon entries together", async () => {
+    const cookie = await signIn();
+    const { members } = await (await routes.members.GET(request("/api/admin/members", { cookie }))).json();
+    const target = members.find((member: { email: string }) => member.email === "w1@example.com");
+    expect((await routes.members.DELETE(request(`/api/admin/members?id=${target.id}`, { method: "DELETE", cookie }))).status).toBe(200);
+    const { entries } = await (await routes.admin.GET(request("/api/admin/waitlist", { cookie }))).json();
+    expect(entries.some((entry: { email: string }) => entry.email === "w1@example.com")).toBe(false);
+  });
+
+  it("reports health and sign-up numbers to the main admins", async () => {
+    const response = await routes.health.GET(request("/api/admin/health", { cookie: await signIn() }));
+    const health = await response.json();
+    expect(health.checks.find((check: { name: string }) => check.name === "Database")).toMatchObject({ level: "ok" });
+    expect(health.signups.total).toBeGreaterThan(0);
+    expect(health.comingSoon.top[0]).toMatchObject({ location: "Hinckley, Leicestershire" });
+  });
+
+  it("keeps sign-ups and health from admins who aren't owners", async () => {
+    process.env.ADMIN_USERS = "Sam:test-password-123,Pat:test-password-456";
+    process.env.ADMIN_OWNERS = "Sam";
+    try {
+      const login = await routes.session.POST(request("/api/admin/session", { method: "POST", body: { name: "Pat", password: "test-password-456" } }));
+      const cookie = `ntm_admin=${login.cookies.get("ntm_admin")?.value}`;
+      expect((await routes.members.GET(request("/api/admin/members", { cookie }))).status).toBe(403);
+      expect((await routes.health.GET(request("/api/admin/health", { cookie }))).status).toBe(403);
+      expect((await routes.admin.GET(request("/api/admin/waitlist", { cookie }))).status).toBe(403);
+    } finally {
+      process.env.ADMIN_USERS = "Sam:test-password-123";
+      delete process.env.ADMIN_OWNERS;
+    }
+  });
+});
+
+// Sign in once and reuse the cookie, so the tests stay under the sign-in rate limit.
+let adminCookie: string | undefined;
 async function signIn() {
+  if (adminCookie) return adminCookie;
   const response = await routes.session.POST(request("/api/admin/session", { method: "POST", body: { name: "Sam", password: "test-password-123" } }));
-  return `ntm_admin=${response.cookies.get("ntm_admin")?.value}`;
+  adminCookie = `ntm_admin=${response.cookies.get("ntm_admin")?.value}`;
+  return adminCookie;
 }
 
 describe("admin coming-soon list", () => {

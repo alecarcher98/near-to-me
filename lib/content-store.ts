@@ -2,7 +2,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { getArea } from "@/lib/areas";
 import { redisFromEnv, type Redis } from "@/lib/redis";
-import type { AreaContent, WaitlistEntry } from "@/lib/types";
+import type { AreaContent, Member, WaitlistEntry } from "@/lib/types";
 
 // Content lives in one JSON document per area (seeded from data/<area>-*.json on first use)
 // plus one waitlist document shared by all areas.
@@ -11,11 +11,14 @@ export type ContentStore = {
   update<R>(areaId: string, change: (content: AreaContent) => R | Promise<R>): Promise<R>;
   readWaitlist(): Promise<WaitlistEntry[]>;
   updateWaitlist<R>(change: (entries: WaitlistEntry[]) => R | Promise<R>): Promise<R>;
+  readMembers(): Promise<Member[]>;
+  updateMembers<R>(change: (members: Member[]) => R | Promise<R>): Promise<R>;
 };
 
 export class StorageUnavailableError extends Error {}
 
 const waitlistName = "_waitlist";
+const membersName = "_members";
 
 function areaFallback(areaId: string) {
   const area = getArea(areaId);
@@ -41,6 +44,12 @@ function storeOn(backend: DocumentBackend): ContentStore {
     },
     updateWaitlist<R>(change: (entries: WaitlistEntry[]) => R | Promise<R>) {
       return backend.update<WaitlistEntry[], R>(waitlistName, () => [], change);
+    },
+    readMembers() {
+      return backend.read<Member[]>(membersName, () => []);
+    },
+    updateMembers<R>(change: (members: Member[]) => R | Promise<R>) {
+      return backend.update<Member[], R>(membersName, () => [], change);
     },
   };
 }
@@ -122,11 +131,17 @@ export function createReadOnlyStore(reason: string): ContentStore {
   return storeOn({ read: async (_name, fallback) => fallback(), update: refuse });
 }
 
-function storeFromEnv(): ContentStore {
+export type StorageKind = "redis" | "files" | "read-only";
+
+function storeFromEnv(): { store: ContentStore; kind: StorageKind; redis: Redis | null } {
   const redis = redisFromEnv();
-  if (redis) return createRedisStore(redis, process.env.STORE_PREFIX ?? "near-to-me");
-  if (process.env.VERCEL) return createReadOnlyStore("Saving is turned off: connect an Upstash Redis database (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN).");
-  return createContentStore(process.env.CONTENT_DIR ?? path.join(process.cwd(), ".data"));
+  if (redis) return { store: createRedisStore(redis, process.env.STORE_PREFIX ?? "near-to-me"), kind: "redis", redis };
+  if (process.env.VERCEL) return { store: createReadOnlyStore("Saving is turned off: connect an Upstash Redis database (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN)."), kind: "read-only", redis: null };
+  return { store: createContentStore(process.env.CONTENT_DIR ?? path.join(process.cwd(), ".data")), kind: "files", redis: null };
 }
 
-export const contentStore = storeFromEnv();
+const configured = storeFromEnv();
+
+export const contentStore = configured.store;
+// Which backend is in use, and the Redis client behind it, for the admin health page.
+export const storage = { kind: configured.kind, redis: configured.redis };

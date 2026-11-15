@@ -2,13 +2,16 @@ import type { NextConfig } from "next";
 
 const development = process.env.NODE_ENV !== "production";
 
+// Street map tiles; the host comes from NEXT_PUBLIC_MAP_TILE_URL when a keyed provider is used ({s} subdomains become *).
+const tileHost = (process.env.NEXT_PUBLIC_MAP_TILE_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png").match(/^https:\/\/[^/]+/)?.[0].replace("{s}", "*") ?? "https://tile.openstreetmap.org";
+
 // Next.js hydrates with inline scripts, so script-src needs 'unsafe-inline' unless every page renders dynamically with nonces.
-// Everything else is locked to this site, plus postcodes.io for postcode and town lookups.
+// Everything else is locked to this site, plus postcodes.io for postcode and town lookups and the map tile server for images.
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${development ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  `img-src 'self' data: blob: ${tileHost}`,
   "font-src 'self'",
   `connect-src 'self' https://api.postcodes.io${development ? " ws:" : ""}`,
   "frame-ancestors 'none'",

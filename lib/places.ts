@@ -9,6 +9,7 @@ export const categories = [
   "Attractions & days out",
   "Pubs & bars",
   "Parking",
+  "EV charging",
   "Travel",
   "ATMs & Currency Exchange",
   "Laundry",
@@ -24,6 +25,7 @@ export const categoryColors: Record<string, string> = {
   Shopping: "#cf4c7b",
   "Gyms & fitness": "#2f7fb8",
   Parking: "#4260c9",
+  "EV charging": "#0f9d8a",
   "ATMs & Currency Exchange": "#b48934",
   "Pubs & bars": "#a74b27",
   "Attractions & days out": "#178457",
@@ -61,6 +63,25 @@ export function rankNearby(places: NearbyPlace[], now = Date.now()) {
     Number(isSpotlight(b, now)) - Number(isSpotlight(a, now))
     || Number(isSponsored(b, now)) - Number(isSponsored(a, now))
     || a.miles - b.miles);
+}
+
+// what3words for a place: the stored field, or one written into older details text. Shown as text to copy, never linked.
+export function placeWhat3words(place: Place) {
+  const raw = place.what3words ?? place.details.match(/what3words\s+(\/{3}[a-z]+\.[a-z]+\.[a-z]+)/i)?.[1];
+  return raw ? `///${raw.replace(/^\/+/, "").toLowerCase()}` : undefined;
+}
+
+// Car parks and chargers are found by their exact position; businesses by name and address.
+function directionsTarget(place: Place) {
+  return place.category === "Parking" || place.category === "EV charging" ? `${place.lat},${place.lng}` : `${place.name}, ${place.address}`;
+}
+
+export function googleDirections(place: Place, from?: LatLng) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(directionsTarget(place))}${from ? `&origin=${from.lat},${from.lng}` : ""}`;
+}
+
+export function appleDirections(place: Place, from?: LatLng) {
+  return `https://maps.apple.com/?daddr=${encodeURIComponent(directionsTarget(place))}${from ? `&saddr=${from.lat},${from.lng}` : ""}&dirflg=d`;
 }
 
 export function nearestByCategory(places: NearbyPlace[], category: string, count: number) {
