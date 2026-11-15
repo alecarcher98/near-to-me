@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { areas } from "@/lib/areas";
-import { isSponsored, isSpotlight, matchesCategory, nearestByCategory, placeCategories, rankNearby, withDistance, type NearbyPlace } from "@/lib/places";
+import { appleDirections, googleDirections, isSponsored, isSpotlight, matchesCategory, nearestByCategory, placeCategories, placeWhat3words, rankNearby, withDistance, type NearbyPlace } from "@/lib/places";
 import type { Place } from "@/lib/types";
 
 const now = Date.parse("2026-11-03T12:00:00Z");
@@ -81,6 +81,13 @@ describe("Nuneaton seed data", () => {
     }
   });
 
+  it("lists the nine EV charge points, each with a what3words address", () => {
+    const chargers = places.filter((place) => place.category === "EV charging");
+    expect(chargers).toHaveLength(9);
+    for (const charger of chargers) expect(placeWhat3words(charger), charger.id).toMatch(/^\/\/\/[a-z]+\.[a-z]+\.[a-z]+$/);
+    expect(placeWhat3words(chargers.find((place) => place.id === "ev-asda-superstore")!)).toBe("///lost.quite.roses");
+  });
+
   it("includes gyms and high-protein picks", () => {
     expect(places.filter((place) => place.category === "Gyms & fitness").length).toBeGreaterThanOrEqual(3);
     expect(places.filter((place) => matchesCategory(place, "Healthy eats")).length).toBeGreaterThanOrEqual(3);
@@ -89,5 +96,20 @@ describe("Nuneaton seed data", () => {
   it("spotlights the new Jail House and Turkish restaurant", () => {
     const spotlit = places.filter((place) => isSpotlight(place, now)).map((place) => place.id);
     expect(spotlit).toEqual(expect.arrayContaining(["the-jail-house-pub-bistro", "alanya-restaurant"]));
+  });
+});
+
+describe("what3words and directions", () => {
+  it("reads what3words from the field or from older details text, and never makes a link", () => {
+    expect(placeWhat3words({ ...base, what3words: "///a.b.c" })).toBe("///a.b.c");
+    expect(placeWhat3words({ ...base, details: "Free car park. what3words ///loud.firmly.flying" })).toBe("///loud.firmly.flying");
+    expect(placeWhat3words(base)).toBeUndefined();
+  });
+
+  it("routes car parks and chargers to their exact spot and businesses by name", () => {
+    const charger = { ...base, name: "EV", category: "EV charging", lat: 52.5, lng: -1.4 };
+    expect(googleDirections(charger)).toBe("https://www.google.com/maps/dir/?api=1&destination=52.5%2C-1.4");
+    expect(appleDirections(charger, { lat: 52.52, lng: -1.46 })).toBe("https://maps.apple.com/?daddr=52.5%2C-1.4&saddr=52.52,-1.46&dirflg=d");
+    expect(googleDirections({ ...base, name: "Café", address: "1 High St" })).toContain("destination=Caf%C3%A9%2C%201%20High%20St");
   });
 });

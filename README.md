@@ -22,13 +22,25 @@ Open [http://localhost:3000](http://localhost:3000). The admin portal is at [/ad
 
 ## How it works
 
+**Area and email first.** A first-time visitor sees a welcome screen asking for their area (*Use my location*, or a town or postcode) and email, with an optional first name. If the area is live they go straight into the guide, centred on them. If it isn't, they join the coming-soon list for their place, are told how many others have asked for it, and can explore a live area in the meantime. Either way they're then shown everything the site does. Everyone who signs up is listed under **Sign-ups** in the admin portal. Returning visitors skip the screen (it's remembered in their browser), and *What Near to me does* in the sidebar reopens the tour.
+
 **Personalised to where you are.** Visitors tap *Use my location* (browser geolocation) or enter a postcode. Every place is sorted by straight-line distance from that point, with a walking-time estimate. The location is kept only in that visitor's browser. Postcode lookups go to [postcodes.io](https://postcodes.io). Without a location, the guide starts from the town centre.
 
-**Explore page sections:** what do you need (shops, things to do, gyms, high protein / low cal, pubs, parking) → just opened → your favourites nearby → recommended → this week's events → everything nearby (map and list) → visiting? essentials (parking, cash, trains and buses, A&E) → local noticeboard.
+**Street map.** The nearby map is a real street map (OpenStreetMap tiles by default) with a pin for every place, coloured and iconned by category, a dashed ring for the chosen distance and a blue dot for the visitor. Drag to move, double-tap or use +/− to zoom; tapping a pin opens the place. The legend under the map filters by category. Set `NEXT_PUBLIC_MAP_TILE_URL` to use a keyed tile provider in production.
+
+**EV charging, what3words and directions.** EV charge points are their own category (with a tile under *What do you need?* and a pin on the map). Any place can carry a what3words address, shown with a **Copy** button only: the site never links to or calls what3words. Older car parks that have what3words written in their details get the same button. Every place has **Apple Maps** and **Google Maps** directions, from the visitor's location when they've shared one; car parks and chargers route to their exact position, everything else to its name and address.
+
+**Explore page sections:** what do you need (food, shops, things to do, gyms, high protein / low cal, pubs, parking, EV charging) → just opened → your favourites nearby → recommended → this week's events → everything nearby (map and list) → visiting? essentials (parking, cash, trains and buses, A&E) → local noticeboard.
 
 **Ranking:** places marked *just opened* come first for three weeks, then *sponsored* places (always labelled), then the nearest.
 
-**Admin portal (`/admin`).** Admins sign in and manage everything without code changes:
+**Admin portal (`/admin`).** Admins sign in and manage everything without code changes. The main admins (`ADMIN_OWNERS`) also see:
+
+- **Health:** whether the database, postcode lookups, admin sign-in and site settings are working, with timings, the build and region; sign-ups today, this week and over the last 14 days; where people want Near to me next; and each live area's numbers.
+- **Sign-ups:** everyone who gave their area and email, live or waiting, with search, a filter, copy emails, CSV download and removal (which also removes their coming-soon entries, for deletion requests).
+- **Coming soon** (below).
+
+Every admin can manage:
 
 - **Places:** add, edit or remove places. Mark them as just opened, sponsored, recommended or high protein / low cal. Locations can be filled in from the postcode.
 - **Events:** weekly events, or one-off events with a date.
@@ -42,7 +54,7 @@ Open [http://localhost:3000](http://localhost:3000). The admin portal is at [/ad
 
 ## Data and areas
 
-- `data/nuneaton-places.json` and `data/nuneaton-events.json` seed the Nuneaton guide. Places carry latitude and longitude from their postcodes. Eight that had no usable postcode were placed by street and are flagged `approximateLocation`.
+- `data/nuneaton-places.json` and `data/nuneaton-events.json` seed the Nuneaton guide. Places carry latitude and longitude from their postcodes. Twelve that had no usable postcode (including two EV charge points) were placed by street and are flagged `approximateLocation`.
 - `lib/areas.ts` registers each area. To add an area, add `data/<area>-places.json` and `data/<area>-events.json` and register them there.
 - The first time an area is used, its seed data becomes the starting copy. After that, admin edits, reviews and enquiries are saved to the database.
 
@@ -72,15 +84,17 @@ Rate limits use the same Redis database when it's configured, so limits apply ac
 ## Going live checklist
 
 1. **Database:** add Upstash Redis (Vercel → Storage → Marketplace → Upstash), or set `UPSTASH_REDIS_REST_URL`/`TOKEN`.
-2. **Admins:** run `npm run admin:hash -- <name>` for each admin, and join the outputs with commas into `ADMIN_USERS`.
+2. **Admins:** run `npm run admin:hash -- <name>` for each admin, and join the outputs with commas into `ADMIN_USERS`. Put the two main admins' names in `ADMIN_OWNERS` (for example `Alec,Sam`).
 3. **Secrets and settings:** set `ADMIN_SESSION_SECRET` (32+ random characters), `SITE_URL`, `NEXT_PUBLIC_OPERATOR_NAME` and `NEXT_PUBLIC_CONTACT_EMAIL`. Set them before building, because the sitemap and robots file are generated at build time.
 4. **Legal review:** have someone qualified review `/privacy` and `/terms`. They describe what the code does, but they aren't legal advice.
-5. **Deploy and check:** deploy, sign in at `/admin`, and post a test noticeboard update to confirm saving works.
-6. **Optional:** register the domain on the HSTS preload list once HTTPS is settled on every subdomain.
+5. **Deploy and check:** deploy, sign in at `/admin` as a main admin and open **Health**: every check should be green. Then sign up on the welcome screen once with a Nuneaton postcode and once with somewhere else, and check both appear under **Sign-ups**.
+6. **Map tiles:** OpenStreetMap's tile server is for light use only. Before real traffic, sign up with a tile provider (MapTiler, Stadia Maps or Thunderforest all have free tiers) and set `NEXT_PUBLIC_MAP_TILE_URL` and `NEXT_PUBLIC_MAP_ATTRIBUTION`, then redeploy.
+7. **Optional:** register the domain on the HSTS preload list once HTTPS is settled on every subdomain.
 
 ## Known limitations
 
 - **Visitor accounts:** `/account` sign-up and sign-in are a browser-only preview. Sign-in only matches the email saved in that browser; passwords are never stored or sent anywhere. Business sign-ups and out-of-area sign-ups do reach admins. Real visitor accounts need an authentication service.
 - **Reviews:** they're published immediately, and admins remove bad ones afterwards. They aren't held for approval.
-- **Map:** the nearby map is a distance view centred on the visitor (rings at half and full radius), not a street map.
+- **Map:** places are pinned from their postcodes, so a few share a point or sit slightly off; twelve are flagged `approximateLocation`. There's no clustering yet, so very wide distances get busy.
+- **Welcome screen:** it's remembered per browser, so someone on a new device is asked again (their sign-up is updated, not duplicated).
 - **Inline scripts:** the CSP allows inline scripts because Next.js uses them for static pages. Switching every page to dynamic rendering with nonces would remove that allowance.

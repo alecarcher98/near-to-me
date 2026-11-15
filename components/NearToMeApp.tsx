@@ -12,6 +12,7 @@ import {
   ChevronRight,
   CircleHelp,
   Compass,
+  Copy,
   Dumbbell,
   ExternalLink,
   Filter,
@@ -21,9 +22,8 @@ import {
   Megaphone,
   Menu,
   MessageCircle,
-  Minus,
+  PlugZap,
   Navigation,
-  Plus,
   Salad,
   Search,
   Share2,
@@ -34,14 +34,17 @@ import {
   Store,
   ThumbsUp,
   Ticket,
+  Utensils,
   X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { areas, defaultAreaId } from "@/lib/areas";
 import { eventsThisWeek } from "@/lib/events";
-import { formatDistance, formatTravel, isUkPostcode, projectToMap } from "@/lib/geo";
-import { categories, categoryColor, isSponsored, isSpotlight, matchesCategory, nearestByCategory, rankNearby, withDistance, type NearbyPlace } from "@/lib/places";
+import { formatDistance, formatTravel, isUkPostcode } from "@/lib/geo";
+import { appleDirections, categories, categoryColor, googleDirections, isSponsored, isSpotlight, matchesCategory, nearestByCategory, placeWhat3words, rankNearby, withDistance, type NearbyPlace } from "@/lib/places";
 import type { LatLng, LocalEvent, Place, PublicContent, Update } from "@/lib/types";
+import StreetMap, { CategoryIcon } from "@/components/StreetMap";
+import { FeatureTour, WelcomeGate, type MemberProfile } from "@/components/Welcome";
 
 type Tab = "explore" | "favourites" | "reviews" | "business";
 type Origin = LatLng & { label: string; source: "device" | "postcode" | "centre" };
@@ -51,14 +54,17 @@ const townCentre: Origin = { ...area.centre, label: `${area.name} town centre`, 
 const allNearby = "Everything nearby";
 const radiusOptions = [0.5, 1, 3, 5, 10, 25];
 const originKey = "near-to-me:origin";
+const memberKey = "near-to-me:member";
 
 const needs: { label: string; category: string; icon: typeof Compass; hint: string }[] = [
+  { label: "Food & drink", category: "Food", icon: Utensils, hint: "Cafés, takeaways & restaurants" },
   { label: "Shops", category: "Shopping", icon: ShoppingBag, hint: "Supermarkets, chemists & independents" },
   { label: "Things to do", category: "Attractions & days out", icon: Ticket, hint: "Parks, theatre, days out" },
   { label: "Gyms & fitness", category: "Gyms & fitness", icon: Dumbbell, hint: "Gyms, leisure centres, courts" },
   { label: "High protein, low cal", category: "Healthy eats", icon: Salad, hint: "Grilled, lean & build-your-own" },
   { label: "Pubs & bars", category: "Pubs & bars", icon: Sparkles, hint: "A drink, a bite, a night out" },
   { label: "Parking", category: "Parking", icon: Car, hint: "Car parks & prices" },
+  { label: "EV charging", category: "EV charging", icon: PlugZap, hint: "Charge points near you" },
 ];
 const navItems: { id: Tab; label: string; icon: typeof Compass }[] = [
   { id: "explore", label: "Explore nearby", icon: Compass },
@@ -88,10 +94,6 @@ function writeLocal(key: string, value: unknown) {
 function tidy(text: string, maximum = 118) {
   const result = text.replace(/what3words\s+\/\/\/\S+/gi, "").replace(/\s+/g, " ").trim();
   return result.length > maximum ? `${result.slice(0, maximum).trim()}…` : result;
-}
-
-function placeGlyph(category: string) {
-  return ({ Food: "✳", Shopping: "◇", Parking: "P", "Attractions & days out": "✦", "Pubs & bars": "◒", "Gyms & fitness": "▲" } as Record<string, string>)[category] ?? "⌖";
 }
 
 async function postJson(url: string, body: unknown) {
@@ -129,7 +131,6 @@ export default function NearToMeApp() {
   const [selectedCategory, setSelectedCategory] = useState(allNearby);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [reviewPlace, setReviewPlace] = useState<Place | null>(null);
-  const [mapZoom, setMapZoom] = useState(1);
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [showAllEvents, setShowAllEvents] = useState(false);
@@ -137,6 +138,9 @@ export default function NearToMeApp() {
   const [accountName, setAccountName] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
   const [comingSoon, setComingSoon] = useState<{ placeName: string; joined: boolean } | null>(null);
+  const [member, setMember] = useState<MemberProfile | null>(null);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => {
     setOrigin(readLocal(originKey, townCentre));
@@ -144,6 +148,10 @@ export default function NearToMeApp() {
     setFavourites(readLocal("near-to-me:favourites", readLocal<string[]>("nearfolk:saved", [])));
     setVisited(readLocal("near-to-me:visited", readLocal<string[]>("nearfolk:visited", [])));
     setAccountName(readLocal<{ name?: string }>("near-to-me:profile", {}).name ?? "");
+    const savedMember = readLocal<MemberProfile | null>(memberKey, null);
+    setMember(savedMember);
+    // Area and email come first: anyone who hasn't given them sees the welcome screen.
+    setWelcomeOpen(!savedMember);
     setIsLoaded(true);
     fetch(`/api/content?area=${area.id}`, { cache: "no-store" })
       .then((response) => response.ok ? response.json() as Promise<PublicContent> : Promise.reject(new Error(`HTTP ${response.status}`)))
@@ -184,7 +192,7 @@ export default function NearToMeApp() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     try {
-      await postJson("/api/waitlist", { email: form.get("email"), name: form.get("name"), source: "explore", contactTime: form.get("contactTime"), ...(origin.source === "postcode" ? { location: origin.label } : { lat: origin.lat, lng: origin.lng }) });
+      await postJson("/api/waitlist", { email: form.get("email") ?? member?.email, name: form.get("name") ?? member?.name, source: "explore", contactTime: form.get("contactTime"), ...(origin.source === "postcode" ? { location: origin.label } : { lat: origin.lat, lng: origin.lng }) });
       setComingSoon((current) => current && { ...current, joined: true });
     } catch (error) {
       setToast(error instanceof Error ? error.message : "We couldn't save that. Please try again.");
@@ -326,7 +334,7 @@ export default function NearToMeApp() {
         <div className="sidebar-divider" />
         <div className="sidebar-section-title">FIND FAST</div>
         <nav className="primary-nav">
-          {needs.slice(2, 5).map(({ label, category, icon: Icon }) => <button key={category} className="nav-link" onClick={() => { showCategory(category); setMenuOpen(false); }}><Icon size={18} /><span>{label}</span></button>)}
+          {needs.slice(3, 6).map(({ label, category, icon: Icon }) => <button key={category} className="nav-link" onClick={() => { showCategory(category); setMenuOpen(false); }}><Icon size={18} /><span>{label}</span></button>)}
         </nav>
         <div className="sidebar-bottom">
           <button className="neighbour-card" onClick={() => { setTab("business"); setMenuOpen(false); }}>
@@ -334,7 +342,7 @@ export default function NearToMeApp() {
             <p><b>Are you a business?</b><br />Get featured & collect reviews.</p>
             <span className="neighbour-card-arrow"><ArrowRight size={16} /></span>
           </button>
-          <button className="help-link" onClick={() => setToast("Near to me shows the good stuff closest to you. Use your location or a postcode to start.")}><CircleHelp size={17} /> Help & feedback</button>
+          <button className="help-link" onClick={() => { setTourOpen(true); setMenuOpen(false); }}><CircleHelp size={17} /> What Near to me does</button>
           <a className="account-row" href="/account"><div className="avatar">{accountName ? accountName.slice(0, 1).toUpperCase() : "NT"}</div><div><b>{accountName || "Sign in / Join free"}</b><span>{accountName ? "Neighbour account" : "Your local life, a little closer"}</span></div><ChevronRight size={15} /></a>
         </div>
       </aside>
@@ -393,7 +401,7 @@ export default function NearToMeApp() {
                   <div className="coming-soon" role="status">
                     <span className="coming-soon-icon"><Sparkles size={16} /></span>
                     <div className="coming-soon-copy"><b>Near to me is coming soon to {comingSoon.placeName}.</b><span>{comingSoon.joined ? "Thanks! We’ll email you as soon as it’s available there." : `We’re live in ${area.name} for now. Leave your email and we’ll tell you when your area launches.`}</span></div>
-                    {!comingSoon.joined && <form className="coming-soon-form" onSubmit={joinWaitlist}><input name="name" placeholder="Your name (optional)" maxLength={80} autoComplete="name" aria-label="Your name" /><input name="email" type="email" required placeholder="you@example.com" maxLength={160} autoComplete="email" aria-label="Email address" /><input className="form-trap" name="contactTime" tabIndex={-1} autoComplete="off" aria-hidden="true" /><button type="submit">Tell me when it’s here</button></form>}
+                    {!comingSoon.joined && <form className="coming-soon-form" onSubmit={joinWaitlist}>{!member && <><input name="name" placeholder="Your name (optional)" maxLength={80} autoComplete="name" aria-label="Your name" /><input name="email" type="email" required placeholder="you@example.com" maxLength={160} autoComplete="email" aria-label="Email address" /></>}<input className="form-trap" name="contactTime" tabIndex={-1} autoComplete="off" aria-hidden="true" /><button type="submit">{member ? `Add ${comingSoon.placeName.split(",")[0]} to my list` : "Tell me when it’s here"}</button></form>}
                   </div>
                 )}
                 <p className="location-bar-privacy"><ShieldCheck size={12} /> Your location stays on this device. Postcodes are looked up with postcodes.io.</p>
@@ -449,27 +457,13 @@ export default function NearToMeApp() {
               <div className="discovery-grid">
                 <section className="map-column" aria-label="Nearby places map">
                   <div className="map-card">
-                    <div className="map-top-controls"><span className="map-live"><span /> AROUND YOU · {radius} MI</span><button className="map-control-pill" onClick={locateMe}><LocateFixed size={14} /> Recenter on me</button></div>
-                    <div className="neighborhood-map nearby-radar" style={{ ["--zoom" as string]: mapZoom }}>
-                      <div className="radar-layer">
-                        <span className="radar-ring ring-full" /><span className="radar-ring ring-half" /><span className="radar-ring ring-quarter" />
-                        <span className="radar-label label-full">{radius} mi</span><span className="radar-label label-half">{radius / 2} mi</span>
-                        <span className="radar-compass">N</span>
-                        {filteredPlaces.slice(0, 60).map((place, index) => {
-                          const point = projectToMap(origin, place, radius);
-                          return (
-                            <button key={place.id} className={`map-pin ${currentPlace?.id === place.id ? "map-pin-selected" : ""} ${index > 24 ? "map-pin-small" : ""}`} style={{ left: `${point.x}%`, top: `${point.y}%`, backgroundColor: categoryColor(place.category), ["--delay" as string]: `${index * 10}ms` }} onClick={() => setSelectedPlace(place)} title={`${place.name} · ${formatDistance(place.miles)}`} aria-label={`Show ${place.name}, ${formatDistance(place.miles)} away`}>
-                              {currentPlace?.id === place.id ? <MapPin size={17} fill="currentColor" /> : <span />}
-                            </button>
-                          );
-                        })}
-                        <span className="radar-you"><span /><b>{origin.source === "centre" ? "Town centre" : "You"}</b></span>
-                      </div>
-                      <div className="map-zoom"><button onClick={() => setMapZoom((value) => Math.min(2, value + 0.2))} aria-label="Zoom in"><Plus size={19} /></button><button onClick={() => setMapZoom((value) => Math.max(1, value - 0.2))} aria-label="Zoom out"><Minus size={19} /></button></div>
+                    <div className="map-top-controls"><span className="map-live"><span /> AROUND YOU · {radius} MI</span><button className="map-control-pill" onClick={locateMe}><LocateFixed size={14} /> Use my location</button></div>
+                    <div className="neighborhood-map">
+                      <StreetMap origin={origin} originLabel={origin.source === "centre" ? "Town centre" : origin.label} radiusMiles={radius} places={filteredPlaces} selectedId={currentPlace?.id} onSelect={setSelectedPlace} />
                     </div>
-                    <div className="map-legend">{["Food", "Shopping", "Gyms & fitness", "Parking", "Pubs & bars", "Attractions & days out"].map((item) => <span key={item}><i style={{ backgroundColor: categoryColor(item) }} />{item}</span>)}</div>
+                    <div className="map-legend">{["Food", "Shopping", "Gyms & fitness", "Parking", "EV charging", "Pubs & bars", "Attractions & days out", "Travel", "A&E"].map((item) => <button key={item} className={selectedCategory === item ? "active" : ""} onClick={() => setSelectedCategory(selectedCategory === item ? allNearby : item)}><i style={{ backgroundColor: categoryColor(item) }}><CategoryIcon category={item} size={10} /></i>{item}</button>)}</div>
                   </div>
-                  <div className="map-note"><ShieldCheck size={15} /><span>Distances are straight-line from {origin.label}, based on each place’s postcode. Always check with a business before you travel.</span></div>
+                  <div className="map-note"><ShieldCheck size={15} /><span>Drag to move, double-tap or use + and − to zoom. Distances are straight-line from {origin.label}, based on each place’s postcode. Always check with a business before you travel.</span></div>
                 </section>
                 <section className="place-list" aria-label="Nearby places">
                   <div className="list-heading"><span>NEAREST FIRST</span>{selectedCategory !== allNearby && <button onClick={() => setSelectedCategory(allNearby)}>Show everything <X size={13} /></button>}</div>
@@ -477,7 +471,7 @@ export default function NearToMeApp() {
                     {filteredPlaces.slice(0, listLimit).map((place) => (
                       <article key={place.id} className={currentPlace?.id === place.id ? "place-card selected" : "place-card"}>
                         <button className="place-card-main" onClick={() => setSelectedPlace(place)}>
-                          <span className="place-art" style={{ backgroundColor: `${categoryColor(place.category)}12`, color: categoryColor(place.category) }}><span>{placeGlyph(place.category)}</span></span>
+                          <span className="place-art" style={{ backgroundColor: `${categoryColor(place.category)}12`, color: categoryColor(place.category) }}><CategoryIcon category={place.category} size={17} /></span>
                           <span className="place-copy">
                             <PlaceBadges place={place} />
                             <span className="place-category" style={{ color: categoryColor(place.category) }}>{place.category}</span>
@@ -555,9 +549,22 @@ export default function NearToMeApp() {
         <footer className="main-footer"><span>© 2026 Near to me</span><span>Made for the places that make a place. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span><button onClick={() => setTab("business")}>For local businesses <ArrowUpRight size={13} /></button></footer>
       </main>
 
-      {currentPlace && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedPlace(null); }}><section className="place-detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title"><button className="modal-close" onClick={() => setSelectedPlace(null)} aria-label="Close"><X size={19} /></button><div className="detail-art" style={{ backgroundColor: `${categoryColor(currentPlace.category)}16` }}><span style={{ color: categoryColor(currentPlace.category) }}>{placeGlyph(currentPlace.category)}</span><span className="detail-category" style={{ color: categoryColor(currentPlace.category) }}>{currentPlace.category}</span></div><div className="detail-content"><p className="eyebrow">{formatDistance(currentPlace.miles).toUpperCase()} FROM {origin.label.toUpperCase()} <span>·</span> {formatTravel(currentPlace.miles).toUpperCase()}</p><h2 id="detail-title">{currentPlace.name}</h2><PlaceBadges place={currentPlace} /><p className="detail-address"><MapPin size={15} />{currentPlace.address}{currentPlace.approximateLocation && <small> (approximate location)</small>}</p><p className="detail-description">{tidy(currentPlace.details, 430)}</p>{isSpotlight(currentPlace) && currentPlace.spotlightNote && <p className="spotlight-detail"><Sparkles size={14} /><span><b>Just opened · local first look</b><small>{currentPlace.spotlightNote}</small></span></p>}{ratings[currentPlace.id] && <p className="detail-rating"><ReviewStars rating={Math.round(ratings[currentPlace.id].sum / ratings[currentPlace.id].count)} /> {ratings[currentPlace.id].count} local review{ratings[currentPlace.id].count === 1 ? "" : "s"}</p>}<div className="detail-actions"><button className="primary-button small-button" onClick={() => markVisited(currentPlace)}>{visited.includes(currentPlace.id) ? <><Check size={15} /> Been here</> : <><MapPin size={15} /> I’ve been here</>}</button><button className="outline-button" onClick={() => setReviewPlace(currentPlace)}><Star size={15} /> Write a review</button><button className="icon-outline" onClick={() => toggleFavourite(currentPlace.id)} aria-label={favourites.includes(currentPlace.id) ? "Remove from favourites" : "Add to favourites"}><Heart size={17} fill={favourites.includes(currentPlace.id) ? "currentColor" : "none"} /></button></div><a className="directions-link" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${currentPlace.name}, ${currentPlace.address}`)}${origin.source === "centre" ? "" : `&origin=${origin.lat},${origin.lng}`}`} target="_blank" rel="noreferrer">Get directions <ExternalLink size={14} /></a></div></section></div>}
+      {currentPlace && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedPlace(null); }}><section className="place-detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title"><button className="modal-close" onClick={() => setSelectedPlace(null)} aria-label="Close"><X size={19} /></button><div className="detail-art" style={{ backgroundColor: `${categoryColor(currentPlace.category)}16` }}><span style={{ color: categoryColor(currentPlace.category) }}><CategoryIcon category={currentPlace.category} size={46} /></span><span className="detail-category" style={{ color: categoryColor(currentPlace.category) }}>{currentPlace.category}</span></div><div className="detail-content"><p className="eyebrow">{formatDistance(currentPlace.miles).toUpperCase()} FROM {origin.label.toUpperCase()} <span>·</span> {formatTravel(currentPlace.miles).toUpperCase()}</p><h2 id="detail-title">{currentPlace.name}</h2><PlaceBadges place={currentPlace} /><p className="detail-address"><MapPin size={15} />{currentPlace.address}{currentPlace.approximateLocation && <small> (approximate location)</small>}</p><p className="detail-description">{tidy(currentPlace.details, 430)}</p>{isSpotlight(currentPlace) && currentPlace.spotlightNote && <p className="spotlight-detail"><Sparkles size={14} /><span><b>Just opened · local first look</b><small>{currentPlace.spotlightNote}</small></span></p>}{ratings[currentPlace.id] && <p className="detail-rating"><ReviewStars rating={Math.round(ratings[currentPlace.id].sum / ratings[currentPlace.id].count)} /> {ratings[currentPlace.id].count} local review{ratings[currentPlace.id].count === 1 ? "" : "s"}</p>}<div className="detail-actions"><button className="primary-button small-button" onClick={() => markVisited(currentPlace)}>{visited.includes(currentPlace.id) ? <><Check size={15} /> Been here</> : <><MapPin size={15} /> I’ve been here</>}</button><button className="outline-button" onClick={() => setReviewPlace(currentPlace)}><Star size={15} /> Write a review</button><button className="icon-outline" onClick={() => toggleFavourite(currentPlace.id)} aria-label={favourites.includes(currentPlace.id) ? "Remove from favourites" : "Add to favourites"}><Heart size={17} fill={favourites.includes(currentPlace.id) ? "currentColor" : "none"} /></button></div>{placeWhat3words(currentPlace) && <p className="w3w-row"><span><small>what3words</small><b>{placeWhat3words(currentPlace)}</b></span><button className="outline-button" onClick={() => copy(placeWhat3words(currentPlace)!, "what3words address copied")}><Copy size={13} /> Copy</button></p>}<div className="directions-row"><span>Directions</span><a className="outline-button" href={appleDirections(currentPlace, origin.source === "centre" ? undefined : origin)} target="_blank" rel="noreferrer">Apple Maps <ExternalLink size={12} /></a><a className="outline-button" href={googleDirections(currentPlace, origin.source === "centre" ? undefined : origin)} target="_blank" rel="noreferrer">Google Maps <ExternalLink size={12} /></a></div></div></section></div>}
 
       {reviewPlace && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setReviewPlace(null); }}><section className="review-modal" role="dialog" aria-modal="true" aria-labelledby="review-title"><button className="modal-close" onClick={() => setReviewPlace(null)} aria-label="Close"><X size={19} /></button><span className="review-modal-icon"><MessageCircle size={21} /></span><p className="eyebrow">PASS THE GOOD WORD ALONG</p><h2 id="review-title">A note for {reviewPlace.name}.</h2><form onSubmit={addReview}><label className="field-label">YOUR RATING<div className="rating-input"><ReviewRatingInput /></div></label><label className="field-label">YOUR REVIEW<textarea name="review" required maxLength={1000} rows={4} placeholder="What should a neighbour know before they go?" /></label><label className="field-label">YOUR NAME <span className="optional">(optional)</span><input name="author" maxLength={60} placeholder="How should we credit you?" /></label><input className="form-trap" name="contactTime" tabIndex={-1} autoComplete="off" aria-hidden="true" /><button className="primary-button" type="submit">Share with your neighbours <ArrowRight size={16} /></button></form></section></div>}
+
+      {welcomeOpen && <WelcomeGate
+        liveAreaName={area.name}
+        onJoined={(joined, joinedOrigin) => {
+          setMember(joined);
+          writeLocal(memberKey, joined);
+          if (joinedOrigin) setOrigin(joinedOrigin);
+        }}
+        onFinish={() => { setWelcomeOpen(false); setTab("explore"); window.scrollTo({ top: 0 }); }}
+        onBusiness={() => { setWelcomeOpen(false); setTab("business"); }}
+      />}
+      {tourOpen && <FeatureTour onClose={() => setTourOpen(false)} />}
+      {member?.status === "waitlist" && !welcomeOpen && tab === "explore" && <div className="preview-ribbon" role="status"><Sparkles size={13} /> You’re previewing {area.name}. We’ll email {member.email} when Near to me reaches {member.placeName.split(",")[0]}.</div>}
 
       {toast && <div className="toast-message" role="status"><Check size={16} />{toast}</div>}
     </div>

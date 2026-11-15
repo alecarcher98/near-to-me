@@ -85,16 +85,32 @@ export function verifySession(token: string | undefined, users: Map<string, stri
   }
 }
 
+// ADMIN_OWNERS="Alec,Sam": the main admins, who also see sign-ups, the coming-soon list and the health page.
+// When it's empty every admin is an owner.
+export function parseOwners(value: string | undefined) {
+  return new Set((value ?? "").split(",").map((name) => name.trim().toLowerCase()).filter(Boolean));
+}
+
+export function isOwner(name: string, owners: Set<string>) {
+  return owners.size === 0 || owners.has(name.trim().toLowerCase());
+}
+
 export function adminConfig(env: NodeJS.ProcessEnv = process.env) {
   const secret = env.ADMIN_SESSION_SECRET ?? "";
   const users = parseAdminUsers(env.ADMIN_USERS);
+  const owners = parseOwners(env.ADMIN_OWNERS);
   const production = env.NODE_ENV === "production";
   const problems = [
     users.size === 0 && "ADMIN_USERS is not set",
     secret.length < 32 && "ADMIN_SESSION_SECRET must be at least 32 characters",
     production && [...users.values()].some((credential) => !isHashed(credential)) && "ADMIN_USERS must use hashed passwords in production (run npm run admin:hash)",
   ].filter((problem): problem is string => Boolean(problem));
-  return { secret, users, enabled: problems.length === 0, problems };
+  // Not fatal, but worth showing on the health page.
+  const warnings = [
+    owners.size === 0 && "ADMIN_OWNERS is not set, so every admin can see sign-ups and the health page",
+    ...[...owners].filter((owner) => !users.has(owner)).map((owner) => `ADMIN_OWNERS names "${owner}", who isn't in ADMIN_USERS`),
+  ].filter((warning): warning is string => Boolean(warning));
+  return { secret, users, owners, enabled: problems.length === 0, problems, warnings };
 }
 
 export function currentAdmin(cookieValue: string | undefined) {

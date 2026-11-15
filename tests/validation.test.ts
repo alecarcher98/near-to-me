@@ -16,6 +16,15 @@ describe("parsePlace", () => {
     expect(result.ok && result.value.id).toBe("test-gym");
   });
 
+  it("stores what3words in one tidy form and rejects anything else", () => {
+    for (const input of ["///lost.quite.roses", "W3W:///Lost.Quite.Roses", "w3w://lost.quite.roses", "lost.quite.roses"]) {
+      const result = parsePlace({ ...place, what3words: input });
+      expect(result.ok && result.value.what3words, input).toBe("///lost.quite.roses");
+    }
+    expect(parsePlace({ ...place, what3words: "https://w3w.co/lost.quite.roses" }).ok).toBe(false);
+    expect(parsePlace(place).ok && parsePlace(place)).not.toHaveProperty("value.what3words");
+  });
+
   it("rejects unknown categories, missing names and coordinates outside the UK", () => {
     expect(parsePlace({ ...place, category: "Casino" }).ok).toBe(false);
     expect(parsePlace({ ...place, name: "  " }).ok).toBe(false);

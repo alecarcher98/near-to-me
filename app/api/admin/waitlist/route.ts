@@ -9,14 +9,14 @@ export const dynamic = "force-dynamic";
 const privateHeaders = { "cache-control": "no-store" };
 
 export const GET = route(async (request: NextRequest) => {
-  const access = requireAdmin(request, false);
+  const access = requireAdmin(request, false, { owner: true });
   if ("error" in access) return access.error;
   return NextResponse.json({ entries: await contentStore.readWaitlist() }, { headers: privateHeaders });
 });
 
 // Marks people as emailed (or not) once an admin has told them about their area.
 export const PATCH = route(async (request: NextRequest) => {
-  const access = requireAdmin(request, true);
+  const access = requireAdmin(request, true, { owner: true });
   if ("error" in access) return access.error;
   const json = await readJson(request);
   if (!json.ok) return json.response;
@@ -37,7 +37,7 @@ export const PATCH = route(async (request: NextRequest) => {
 });
 
 export const DELETE = route(async (request: NextRequest) => {
-  const access = requireAdmin(request, true);
+  const access = requireAdmin(request, true, { owner: true });
   if ("error" in access) return access.error;
   const id = request.nextUrl.searchParams.get("id");
   if (!id) return jsonError("Say who to remove.", 400);
